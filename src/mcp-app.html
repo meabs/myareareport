@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Verdant Bank Embedded Sales Demo</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero panel">
+        <div>
+          <p class="eyebrow">Verdant Bank · Embedded Sales Studio</p>
+          <h1 id="hero-title">Embedded Sales for card acquisition</h1>
+          <p id="hero-description">
+            Working MCP App demo for card discovery, eligibility assessment and embedded application journeys.
+          </p>
+        </div>
+        <div class="hero-badges">
+          <span>ChatGPT-ready</span>
+          <span>Claude-ready</span>
+          <span>MCP Apps UI</span>
+        </div>
+      </header>
+
+      <section class="grid-two-up">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Embedded acquisition architecture</p>
+              <h2>Primary production use case</h2>
+            </div>
+          </div>
+          <div id="architecture-lanes" class="architecture-lanes"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Acquisition capability domains</p>
+              <h2>Platform building blocks</h2>
+            </div>
+          </div>
+          <div id="capability-domains" class="capability-grid"></div>
+        </article>
+      </section>
+
+      <section class="grid-two-up">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Card discovery</p>
+              <h2>Partner-led offer selection</h2>
+            </div>
+          </div>
+
+          <form id="discovery-form" class="controls">
+            <label>
+              Channel
+              <select name="channel">
+                <option value="merchant-checkout">Merchant checkout</option>
+                <option value="marketplace">Marketplace wallet</option>
+                <option value="digital-banking">Digital banking cross-sell</option>
+                <option value="contact-centre">Contact centre assisted journey</option>
+              </select>
+            </label>
+            <label>
+              Need
+              <select name="need">
+                <option value="everyday-spend">Everyday spend</option>
+                <option value="travel">Travel rewards</option>
+                <option value="credit-building">Credit building</option>
+              </select>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" name="existingCustomer" />
+              Existing customer
+            </label>
+            <button type="submit">Refresh cards</button>
+          </form>
+
+          <p id="discovery-headline" class="supporting-copy"></p>
+          <div id="card-grid" class="card-grid"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Eligibility assessment</p>
+              <h2>Orchestrated pre-decision</h2>
+            </div>
+          </div>
+
+          <form id="eligibility-form" class="controls">
+            <label>
+              Credit band
+              <select name="creditBand">
+                <option value="fair">Fair</option>
+                <option value="good" selected>Good</option>
+                <option value="excellent">Excellent</option>
+              </select>
+            </label>
+            <label>
+              Annual income
+              <input type="number" min="0" step="1000" name="annualIncome" value="42000" />
+            </label>
+            <label>
+              Employment
+              <select name="employmentStatus">
+                <option value="employed">Employed</option>
+                <option value="self-employed">Self employed</option>
+                <option value="student">Student</option>
+              </select>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" name="existingCustomer" />
+              Existing customer
+            </label>
+            <button type="submit">Run check</button>
+          </form>
+
+          <div id="eligibility-summary" class="decision-summary"></div>
+          <div id="eligibility-rationale" class="detail-list"></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Embedded application journey</p>
+            <h2>Guided onboarding flow</h2>
+          </div>
+        </div>
+
+        <form id="journey-form" class="controls journey-controls">
+          <label>
+            Card
+            <select id="journey-card" name="cardId"></select>
+          </label>
+          <label>
+            Customer type
+            <select name="customerType">
+              <option value="new-to-bank">New to bank</option>
+              <option value="existing-customer">Existing customer</option>
+              <option value="pre-approved-partner">Pre-approved partner lead</option>
+            </select>
+          </label>
+          <label>
+            Lead source
+            <select name="leadSource">
+              <option value="merchant-checkout">Merchant checkout</option>
+              <option value="marketplace">Marketplace wallet</option>
+              <option value="digital-banking">Digital banking cross-sell</option>
+              <option value="contact-centre">Contact centre assisted journey</option>
+            </select>
+          </label>
+          <button type="submit">Refresh journey</button>
+        </form>
+
+        <div id="journey-steps" class="journey-steps"></div>
+        <div class="journey-handoffs">
+          <h3>Operational handoffs</h3>
+          <ul id="journey-handoffs"></ul>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/mcp-app.js"></script>
+  </body>
+</html>
