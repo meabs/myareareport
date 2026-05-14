@@ -9,10 +9,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import {
-  CHANNELS,
+  CARDS,
   CUSTOMER_TYPES,
   EMPLOYMENT_STATUSES,
-  NEEDS,
   createApplicationJourney,
   getCardRecommendations,
   getDemoPayload,
@@ -22,131 +21,115 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST_DIR = path.resolve(__dirname, "..", "dist");
-const RESOURCE_URI = "ui://embedded-sales/demo.html";
+const RESOURCE_URI = "ui://blackwell/app.html";
 
 async function readBundledAppHtml() {
   const candidatePaths = [
     path.join(DIST_DIR, "mcp-app.html"),
     path.join(DIST_DIR, "src", "mcp-app.html"),
   ];
-
   for (const candidatePath of candidatePaths) {
     try {
       return await fs.readFile(candidatePath, "utf8");
     } catch (error) {
-      if (error?.code !== "ENOENT") {
-        throw error;
-      }
+      if (error?.code !== "ENOENT") throw error;
     }
   }
-
-  throw new Error("Bundled MCP App HTML was not found. Run `npm run build` first.");
+  throw new Error("Bundled MCP App HTML not found. Run `npm run build` first.");
 }
 
-function summaryTextForDemo(payload) {
-  return [
-    `${payload.hero.title} for ${payload.brand.name}.`,
-    `Recommended lead offer: ${payload.eligibility.recommendedCard?.name ?? "Refer to assisted journey"}.`,
-    `Architecture phases: ${payload.architecturePhases.map((phase) => phase.title).join(", ")}.`,
-  ].join(" ");
-}
+const CARD_IDS = /** @type {[string, ...string[]]} */ (CARDS.map((c) => c.id));
 
 export function createServer() {
   const server = new McpServer({
-    name: "Verdant Bank Embedded Sales Demo",
+    name: "Blackwell Bank Card Services",
     version: "1.0.0",
   });
 
+  // ── Scenario 1: Full sales UI ─────────────────────────────────────────────
   registerAppTool(
     server,
-    "embedded-sales-demo",
+    "blackwell-browse-cards",
     {
-      title: "Open embedded sales demo",
+      title: "Browse Blackwell Bank cards",
       description:
-        "Launch the Verdant Bank embedded sales MCP App with card discovery, eligibility and onboarding mockups.",
+        "Open the Blackwell Bank card catalogue with eligibility check and application journey. Shows all cards, lets the customer check their eligibility, and guides them through applying.",
       inputSchema: {
-        channel: z.enum(CHANNELS.map((item) => item.id)).optional(),
-        need: z.enum(NEEDS.map((item) => item.id)).optional(),
+        need: z.enum(["everyday-spend", "travel", "credit-building"]).optional(),
         creditBand: z.enum(["fair", "good", "excellent"]).optional(),
         annualIncome: z.number().optional(),
-        employmentStatus: z.enum(EMPLOYMENT_STATUSES.map((item) => item.id)).optional(),
+        employmentStatus: z.enum(EMPLOYMENT_STATUSES.map((i) => i.id)).optional(),
         existingCustomer: z.boolean().optional(),
       },
-      _meta: {
-        ui: {
-          resourceUri: RESOURCE_URI,
-        },
-      },
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async (args) => {
       const payload = getDemoPayload(args);
+      const cardNames = payload.recommendations.cards.map((c) => c.name).join(" and ");
       return {
-        content: [{ type: "text", text: summaryTextForDemo(payload) }],
+        content: [{ type: "text", text: `Blackwell Bank cards: ${cardNames}.` }],
         structuredContent: payload,
       };
     },
   );
 
+  // ── Scenario 2: Single card detail fragment ───────────────────────────────
   registerAppTool(
     server,
-    "recommend-embedded-card",
+    "blackwell-card-detail",
     {
-      title: "Recommend embedded card",
+      title: "Blackwell Bank card details",
       description:
-        "Return card discovery recommendations for a partner channel and customer need.",
+        "Show the Blackwell Bank card detail panel for a specific card — features, APR, and an eligibility check button.",
       inputSchema: {
-        channel: z.enum(CHANNELS.map((item) => item.id)),
-        need: z.enum(NEEDS.map((item) => item.id)),
+        cardId: z.enum(CARD_IDS).optional(),
         existingCustomer: z.boolean().optional(),
       },
-      _meta: {
-        ui: {
-          resourceUri: RESOURCE_URI,
-        },
-      },
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async (args) => {
-      const payload = getCardRecommendations(args);
+      const recommendations = getCardRecommendations({ existingCustomer: args.existingCustomer });
+      const selectedCard = args.cardId
+        ? CARDS.find((c) => c.id === args.cardId)
+        : recommendations.cards[0];
       return {
-        content: [
-          {
-            type: "text",
-            text: `Top discovery recommendation: ${payload.cards[0]?.name ?? "No matching card"}.`,
-          },
-        ],
-        structuredContent: payload,
+        content: [{ type: "text", text: `Showing ${selectedCard?.name ?? "card"} details.` }],
+        structuredContent: {
+          ...recommendations,
+          mode: "card-detail",
+          selectedCardId: selectedCard?.id ?? recommendations.cards[0]?.id,
+        },
       };
     },
   );
 
+  // ── Scenario 3: Eligibility widget fragment ───────────────────────────────
   registerAppTool(
     server,
-    "run-eligibility-check",
+    "blackwell-check-eligibility",
     {
-      title: "Run eligibility check",
+      title: "Check Blackwell Bank card eligibility",
       description:
-        "Simulate embedded eligibility orchestration for a card applicant profile.",
+        "Run a Blackwell Bank eligibility pre-check for a customer profile and show the result widget with credit limit and APR.",
       inputSchema: {
         creditBand: z.enum(["fair", "good", "excellent"]),
         annualIncome: z.number(),
-        employmentStatus: z.enum(EMPLOYMENT_STATUSES.map((item) => item.id)),
+        employmentStatus: z.enum(EMPLOYMENT_STATUSES.map((i) => i.id)),
+        cardId: z.enum(CARD_IDS).optional(),
         existingCustomer: z.boolean().optional(),
       },
-      _meta: {
-        ui: {
-          resourceUri: RESOURCE_URI,
-        },
-      },
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async (args) => {
       const payload = runEligibilityCheck(args);
+      const outcome = payload.decision === "pre-qualified" ? "likely eligible" : "referred for review";
       return {
         content: [
           {
             type: "text",
             text: payload.recommendedCard
-              ? `${payload.decision}: ${payload.recommendedCard.name}`
-              : "Refer applicant for assisted review or an alternative proposition.",
+              ? `Eligibility: ${outcome} for ${payload.recommendedCard.name}.`
+              : "Eligibility: referred for manual review.",
           },
         ],
         structuredContent: payload,
@@ -154,49 +137,115 @@ export function createServer() {
     },
   );
 
+  // ── Scenario 4: Application stepper fragment ──────────────────────────────
   registerAppTool(
     server,
-    "prepare-application-journey",
+    "blackwell-apply",
     {
-      title: "Prepare application journey",
+      title: "Apply for a Blackwell Bank card",
       description:
-        "Generate the onboarding and fulfilment steps for a selected card and customer type.",
+        "Start a Blackwell Bank card application — shows the guided step-by-step application form.",
       inputSchema: {
-        cardId: z.enum(["verdant-everyday", "verdant-travel", "verdant-foundations"]),
-        customerType: z.enum(CUSTOMER_TYPES.map((item) => item.id)),
-        leadSource: z.enum(CHANNELS.map((item) => item.id)),
+        cardId: z.enum(CARD_IDS).optional(),
+        customerType: z.enum(CUSTOMER_TYPES.map((i) => i.id)).optional(),
+      },
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
+    },
+    async (args) => {
+      const payload = createApplicationJourney({
+        cardId: args.cardId ?? "blackwell-rewards",
+        customerType: args.customerType ?? "new-to-bank",
+        leadSource: "digital-banking",
+      });
+      return {
+        content: [{ type: "text", text: `Starting application for ${payload.card.name}.` }],
+        structuredContent: payload,
+      };
+    },
+  );
+
+  // ── App-only: card selection (hidden from LLM) ────────────────────────────
+  registerAppTool(
+    server,
+    "blackwell-select-card",
+    {
+      title: "Select card",
+      description: "Switch the selected card in the catalogue view.",
+      inputSchema: {
+        cardId: z.enum(CARD_IDS),
       },
       _meta: {
         ui: {
           resourceUri: RESOURCE_URI,
+          visibility: ["app"],
         },
       },
     },
     async (args) => {
-      const payload = createApplicationJourney(args);
+      const card = CARDS.find((c) => c.id === args.cardId) ?? CARDS[0];
+      const recommendations = getCardRecommendations();
       return {
-        content: [
-          {
-            type: "text",
-            text: `Prepared ${payload.customerType} onboarding flow for ${payload.card.name}.`,
-          },
-        ],
-        structuredContent: payload,
+        content: [{ type: "text", text: `Selected ${card.name}.` }],
+        structuredContent: {
+          kind: "card-selected",
+          mode: "card-detail",
+          selectedCardId: card.id,
+          recommendations,
+        },
       };
     },
   );
 
+  // ── App-only: application form submission (hidden from LLM) ───────────────
+  registerAppTool(
+    server,
+    "blackwell-submit-application",
+    {
+      title: "Submit application",
+      description: "Submit the card application form and return a confirmation payload.",
+      inputSchema: {
+        cardId: z.enum(CARD_IDS),
+        applicantName: z.string().optional(),
+      },
+      _meta: {
+        ui: {
+          resourceUri: RESOURCE_URI,
+          visibility: ["app"],
+        },
+      },
+    },
+    async (args) => {
+      const card = CARDS.find((c) => c.id === args.cardId) ?? CARDS[0];
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Application submitted for ${card.name}. Decision expected within minutes.`,
+          },
+        ],
+        structuredContent: {
+          kind: "application-submitted",
+          mode: "application",
+          submitted: true,
+          cardId: card.id,
+          cardName: card.name,
+          applicantName: args.applicantName ?? "Alex",
+        },
+      };
+    },
+  );
+
+  // ── UI resource ───────────────────────────────────────────────────────────
   registerAppResource(
     server,
-    "Embedded Sales Demo UI",
+    "Blackwell Bank Card Services UI",
     RESOURCE_URI,
     {
       mimeType: RESOURCE_MIME_TYPE,
-      description: "Verdant Bank embedded sales UI mockups for card acquisition.",
+      description: "Blackwell Bank card services UI — card discovery, eligibility and application.",
     },
     async () => {
       const html = await readBundledAppHtml();
-
       return {
         contents: [
           {
