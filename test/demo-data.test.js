@@ -57,7 +57,7 @@ test("application journey has 5 steps and adapts for existing customers", () => 
   });
 
   assert.equal(result.steps.length, 5);
-  assert.equal(result.steps[2].status, "current");
+  assert.equal(result.steps[0].status, "current");
   assert.match(result.steps[1].detail, /Pre-fill address/);
 });
 

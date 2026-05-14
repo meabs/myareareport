@@ -142,7 +142,14 @@ function renderCards() {
         <p class="card-list-benefit">${card.strengths[0]}</p>
         <p class="card-list-benefit">${card.strengths[1] ?? ""}</p>
         <span class="card-list-view-link">View details</span>
-        <div class="card-list-mini-visual" aria-hidden="true"></div>
+        <div class="card-list-mini-visual" aria-hidden="true">
+          <div class="mini-card-top"><div class="mini-card-chip"></div></div>
+          <div class="mini-card-crest">♞</div>
+          <div class="mini-card-bottom">
+            <span class="mini-card-bank">BLACKWELL</span>
+            <span class="mini-card-network">${card.network}</span>
+          </div>
+        </div>
       </div>`,
     )
     .join("");
@@ -175,19 +182,32 @@ function renderCardDetail(containerId) {
   container.innerHTML = `
     <h2 class="card-detail-name">${card.name}</h2>
     <p class="card-detail-desc">${card.summary}</p>
-    <div class="card-visual" aria-label="${card.name} card image" role="img">
-      <div class="card-chip"></div>
-      <div class="card-network">${card.network ?? "VISA"}</div>
+    <div class="card-detail-columns">
+      <div class="card-detail-left">
+        <ul class="card-features">
+          ${card.strengths.map((s) => `<li>${s}</li>`).join("")}
+        </ul>
+        <div class="apr-banner">
+          <strong>Representative ${card.apr} APR (variable)</strong>
+          <small>Credit subject to status. T&amp;Cs apply.</small>
+        </div>
+        <button class="btn-primary" data-action="check-eligibility">Check your eligibility</button>
+        <button class="btn-secondary" data-action="key-info">View key information</button>
+      </div>
+      <div class="card-detail-right">
+        <div class="card-visual" aria-label="${card.name} card image" role="img">
+          <div class="card-visual-top">
+            <div class="card-chip"></div>
+            <span class="card-bank-name">BLACKWELL<br>BANK</span>
+          </div>
+          <div class="card-visual-crest">♞</div>
+          <div class="card-visual-bottom">
+            <span></span>
+            <span class="card-network">${card.network ?? "VISA"}</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <ul class="card-features">
-      ${card.strengths.map((s) => `<li>${s}</li>`).join("")}
-    </ul>
-    <div class="apr-banner">
-      <strong>Representative ${card.apr} APR (variable)</strong>
-      <small>Credit subject to status. T&amp;Cs apply.</small>
-    </div>
-    <button class="btn-primary" data-action="check-eligibility">Check your eligibility</button>
-    <button class="btn-secondary" data-action="key-info">View key information</button>
   `;
 
   container.querySelector("[data-action='check-eligibility']")?.addEventListener("click", () => {
@@ -217,8 +237,15 @@ function renderEligibilityResult(containerId) {
   const { decision, creditLimit, recommendedCard } = state.eligibility;
   const isPreQualified = decision === "pre-qualified";
 
-  const badgeClass = isPreQualified ? "eligibility-badge" : "eligibility-badge refer";
-  const badgeText  = isPreQualified ? "✓ You're likely to be eligible" : "⚠ Manual review required";
+  const successBoxHtml = isPreQualified ? `
+    <div class="eligibility-success-box">
+      <div class="eligibility-check-circle">✓</div>
+      <div>
+        <h3 class="eligibility-success-title">You're likely to be eligible</h3>
+        <p class="eligibility-success-desc">Congratulations! Based on the information you've entered, you're likely to be approved for the ${recommendedCard?.name ?? "card"}.</p>
+      </div>
+    </div>
+  ` : `<div class="eligibility-badge refer">⚠ Manual review required</div>`;
 
   const statsHtml = isPreQualified && recommendedCard ? `
     <div class="eligibility-stats">
@@ -250,7 +277,7 @@ function renderEligibilityResult(containerId) {
   `;
 
   container.innerHTML = `
-    <div class="${badgeClass}">${badgeText}</div>
+    ${successBoxHtml}
     ${statsHtml}
   `;
 
@@ -314,9 +341,9 @@ function renderJourney(progressId, formId) {
         We'll use this to find your application and do a credit check.
       </p>
       ${getFormFieldsForStep(currentStep.title)}
-      <div style="display:flex;gap:10px;margin-top:4px;">
-        <button type="submit" class="btn-primary" style="flex:1;margin-bottom:0;">Continue</button>
-        <button type="button" class="btn-secondary" id="${formId}-save" style="width:auto;padding:12px 14px;margin-bottom:0;white-space:nowrap;">Save and exit</button>
+      <div class="form-actions">
+        <button type="button" class="btn-link" id="${formId}-save">Save and exit</button>
+        <button type="submit" class="btn-primary form-continue-btn">Continue</button>
       </div>
     </form>
   `;
@@ -346,7 +373,13 @@ function renderJourney(progressId, formId) {
 function renderConfirmation(container, card) {
   container.innerHTML = `
     <div class="confirmation-panel">
-      <div class="confirmation-icon" aria-hidden="true">✓</div>
+      <div class="confirmation-sparkle-wrap" aria-hidden="true">
+        <div class="sparkle sparkle-1"></div>
+        <div class="sparkle sparkle-2"></div>
+        <div class="sparkle sparkle-3"></div>
+        <div class="sparkle sparkle-4"></div>
+        <div class="confirmation-icon">✓</div>
+      </div>
       <h2 class="confirmation-title">Your application has been submitted</h2>
       <p class="confirmation-subtitle">
         Thanks, Alex. We'll let you know our decision within a few minutes.
