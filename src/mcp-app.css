@@ -24,7 +24,7 @@
   padding: 24px;
 }
 
-.view.hidden {
+.hidden {
   display: none !important;
 }
 
