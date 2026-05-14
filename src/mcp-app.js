@@ -50,53 +50,54 @@ function showView(viewId) {
   document.getElementById(viewId)?.classList.remove("hidden");
 }
 
+function revealApplicationSection() {
+  const section = document.getElementById("application-section");
+  if (section?.classList.contains("hidden")) {
+    section.classList.remove("hidden");
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
 // ─── Tool result routing ──────────────────────────────────────────────────────
 
+// Called only by the host (LLM-initiated tool results) — always switches mode
 function handleToolResult(result) {
   const payload = result?.structuredContent ?? {};
 
-  // State updates
   if (payload.kind === "embedded-sales-demo") {
-    state.recommendations = payload.recommendations;
-    state.eligibility     = payload.eligibility;
+    state.recommendations    = payload.recommendations;
+    state.eligibility        = payload.eligibility;
     state.applicationJourney = payload.applicationJourney;
     state.eligibilityChecked = false;
-    state.submitted = false;
-    if (!state.selectedCardId) {
-      state.selectedCardId = payload.recommendations?.cards?.[0]?.id ?? null;
-    }
+    state.submitted          = false;
+    state.selectedCardId     = payload.recommendations?.cards?.[0]?.id ?? null;
+    // Reset journey: hide the application section so it reveals progressively again
+    document.getElementById("application-section")?.classList.add("hidden");
   }
 
   if (payload.kind === "card-recommendations") {
     state.recommendations = payload;
-    if (!state.selectedCardId) state.selectedCardId = payload.cards?.[0]?.id ?? null;
-  }
-
-  if (payload.kind === "card-selected") {
-    state.recommendations = payload.recommendations ?? state.recommendations;
-    state.selectedCardId  = payload.selectedCardId ?? state.selectedCardId;
+    // Use explicit selectedCardId from payload if present (e.g. blackwell-card-detail)
+    state.selectedCardId = payload.selectedCardId ?? payload.cards?.[0]?.id ?? state.selectedCardId;
   }
 
   if (payload.kind === "eligibility-check") {
-    state.eligibility = payload;
+    state.eligibility        = payload;
     state.eligibilityChecked = true;
   }
 
   if (payload.kind === "application-journey") {
     state.applicationJourney = payload;
-    state.submitted = false;
+    state.submitted          = false;
   }
 
   if (payload.kind === "application-submitted") {
     state.submitted = true;
   }
 
-  // Mode switching: stay in "full" for in-view interactions; switch for fragment tool calls
+  // LLM tool calls always switch mode — no stayInFull here
   const incomingMode = payload.mode;
-  if (incomingMode) {
-    const stayInFull = state.mode === "full" && incomingMode !== "full";
-    if (!stayInFull) state.mode = incomingMode;
-  }
+  if (incomingMode) state.mode = incomingMode;
 
   showView(`view-${state.mode}`);
   render();
@@ -109,7 +110,10 @@ function render() {
     case "full":
       renderCards();
       renderCardDetail("full-card-detail-body");
-      if (state.eligibilityChecked) renderEligibilityResult("eligibility-result");
+      if (state.eligibilityChecked) {
+        revealApplicationSection();
+        renderEligibilityResult("eligibility-result");
+      }
       renderJourney("step-progress", "application-form-body");
       break;
     case "card-detail":
@@ -158,11 +162,12 @@ function renderCards() {
     const handler = async () => {
       const cardId = item.dataset.cardId;
       if (cardId === state.selectedCardId) return;
-      const result = await app.callServerTool({
-        name: "blackwell-select-card",
-        arguments: { cardId },
-      });
-      handleToolResult(result);
+      const result = await app.callServerTool({ name: "blackwell-select-card", arguments: { cardId } });
+      const p = result?.structuredContent ?? {};
+      if (p.selectedCardId) state.selectedCardId = p.selectedCardId;
+      if (p.recommendations) state.recommendations = p.recommendations;
+      renderCards();
+      renderCardDetail("full-card-detail-body");
     };
     item.addEventListener("click", handler);
     item.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") handler(); });
@@ -212,17 +217,11 @@ function renderCardDetail(containerId) {
 
   container.querySelector("[data-action='check-eligibility']")?.addEventListener("click", () => {
     if (state.mode === "full") {
-      document.getElementById("application-section")?.scrollIntoView({ behavior: "smooth" });
+      revealApplicationSection();
     } else {
-      // From a fragment, open the eligibility check tool
       app.callServerTool({
         name: "blackwell-check-eligibility",
-        arguments: {
-          creditBand: "good",
-          annualIncome: 42000,
-          employmentStatus: "employed",
-          cardId: card.id,
-        },
+        arguments: { creditBand: "good", annualIncome: 42000, employmentStatus: "employed", cardId: card.id },
       }).then(handleToolResult).catch(console.error);
     }
   });
@@ -282,11 +281,16 @@ function renderEligibilityResult(containerId) {
   `;
 
   container.querySelector("[data-action='continue-application']")?.addEventListener("click", async () => {
-    const result = await app.callServerTool({
-      name: "blackwell-apply",
-      arguments: { cardId: recommendedCard?.id ?? "blackwell-rewards" },
-    });
-    handleToolResult(result);
+    if (state.mode === "full") {
+      // Already showing the stepper in the panel below — just scroll to it
+      document.getElementById("step-progress")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      const result = await app.callServerTool({
+        name: "blackwell-apply",
+        arguments: { cardId: recommendedCard?.id ?? "blackwell-rewards" },
+      });
+      handleToolResult(result);
+    }
   });
 
   container.querySelector("[data-action='check-different']")?.addEventListener("click", () => {
@@ -354,13 +358,10 @@ function renderJourney(progressId, formId) {
     const applicantName = (fd.get("fullName") || "Alex").toString().trim();
     const cardId = card?.id ?? "blackwell-rewards";
 
-    const result = await app.callServerTool({
-      name: "blackwell-submit-application",
-      arguments: { cardId, applicantName },
-    });
-    handleToolResult(result);
+    await app.callServerTool({ name: "blackwell-submit-application", arguments: { cardId, applicantName } });
+    state.submitted = true;
+    renderConfirmation(formContainer, card);
 
-    // Inform the model that the application was submitted
     app.sendMessage({
       role: "user",
       content: [{ type: "text", text: `My application for the ${card?.name ?? "card"} has been submitted.` }],
@@ -448,7 +449,7 @@ function getFormFieldsForStep(stepTitle) {
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
 
-// Eligibility form (full view)
+// Eligibility form (full view) — handled directly, does not switch mode
 eligibilityForm?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
@@ -461,20 +462,21 @@ eligibilityForm?.addEventListener("submit", async (e) => {
       cardId:           state.selectedCardId ?? "blackwell-rewards",
     },
   });
-  handleToolResult(result);
+  const payload = result?.structuredContent ?? {};
+  if (payload.kind === "eligibility-check") {
+    state.eligibility        = payload;
+    state.eligibilityChecked = true;
+    revealApplicationSection();
+    renderEligibilityResult("eligibility-result");
 
-  // After eligibility shown, update model context so it knows the result
-  if (result?.structuredContent?.decision) {
-    const { decision, creditLimit, recommendedCard } = result.structuredContent;
+    const { decision, creditLimit, recommendedCard } = payload;
     app.updateModelContext({
-      content: [
-        {
-          type: "text",
-          text: decision === "pre-qualified"
-            ? `Customer pre-qualified for ${recommendedCard?.name ?? "card"}, credit limit ${creditLimit ?? "£4,000"}.`
-            : "Customer referred for manual review — no instant offer.",
-        },
-      ],
+      content: [{
+        type: "text",
+        text: decision === "pre-qualified"
+          ? `Customer pre-qualified for ${recommendedCard?.name ?? "card"}, credit limit ${creditLimit ?? "£4,000"}.`
+          : "Customer referred for manual review — no instant offer.",
+      }],
     }).catch(() => {});
   }
 });
