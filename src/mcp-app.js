@@ -488,19 +488,16 @@ expandBtn?.addEventListener("click", async () => {
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
-// Register handlers before connect
-app.onhostcontextchanged = applyHostContext;
-app.ontoolresult         = handleToolResult;
-app.onerror              = console.error;
-app.onteardown           = async () => ({});
+// Register ALL handlers before connect — host fires ontoolresult with the
+// correct tool's data; no self-initiated bootstrap call needed.
+app.onhostcontextchanged = (ctx) => {
+  applyHostContext(ctx);
+};
+app.ontoolresult = handleToolResult;
+app.onerror      = console.error;
+app.onteardown   = async () => ({});
 
-app.connect().then(async () => {
+app.connect().then(() => {
   const ctx = app.getHostContext();
   if (ctx) applyHostContext(ctx);
-
-  const result = await app.callServerTool({
-    name: "blackwell-browse-cards",
-    arguments: {},
-  });
-  handleToolResult(result);
 });
