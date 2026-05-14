@@ -160,6 +160,15 @@
   padding: 20px;
 }
 
+.journey-panel-title {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--bw-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* ─── Card List (left column of full view) ───────────────────────────── */
 .card-list-header {
   padding: 15px 18px 11px;

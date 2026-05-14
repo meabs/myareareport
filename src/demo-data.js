@@ -148,19 +148,19 @@ export function createApplicationJourney({
     steps: [
       {
         title: "Personal details",
-        status: "done",
+        status: "current",
         detail: "Name, date of birth, email and mobile number.",
       },
       {
         title: "Address",
-        status: "done",
+        status: "up-next",
         detail: isExistingCustomer
           ? "Pre-fill address details from your profile."
           : "Your current and previous addresses.",
       },
       {
         title: "Employment",
-        status: "current",
+        status: "up-next",
         detail: "Employment status and annual income.",
       },
       {

@@ -176,7 +176,6 @@ export function createServer() {
       },
       _meta: {
         ui: {
-          resourceUri: RESOURCE_URI,
           visibility: ["app"],
         },
       },
@@ -188,7 +187,6 @@ export function createServer() {
         content: [{ type: "text", text: `Selected ${card.name}.` }],
         structuredContent: {
           kind: "card-selected",
-          mode: "card-detail",
           selectedCardId: card.id,
           recommendations,
         },
@@ -209,7 +207,6 @@ export function createServer() {
       },
       _meta: {
         ui: {
-          resourceUri: RESOURCE_URI,
           visibility: ["app"],
         },
       },
@@ -225,7 +222,6 @@ export function createServer() {
         ],
         structuredContent: {
           kind: "application-submitted",
-          mode: "application",
           submitted: true,
           cardId: card.id,
           cardName: card.name,
@@ -252,6 +248,16 @@ export function createServer() {
             uri: RESOURCE_URI,
             mimeType: RESOURCE_MIME_TYPE,
             text: html,
+            _meta: {
+              ui: {
+                csp: {
+                  connectDomains: [
+                    "https://garry-demo.meaburn.com",
+                    "http://localhost:3001",
+                  ],
+                },
+              },
+            },
           },
         ],
       };

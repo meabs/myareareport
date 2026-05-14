@@ -3,11 +3,17 @@ import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import cors from "cors";
 import { createServer } from "./server.js";
+import { getDemoPayload } from "./demo-data.js";
 
 export async function startStreamableHttpServer(createMcpServer) {
   const port = Number(process.env.PORT ?? 3001);
   const app = createMcpExpressApp({ host: "0.0.0.0" });
   app.use(cors());
+
+  // Fallback endpoint for hosts that don't implement the MCP Apps PostMessage protocol
+  app.get("/api/demo", (_req, res) => {
+    res.json(getDemoPayload());
+  });
 
   app.all("/mcp", async (req, res) => {
     const method = req.body?.method;

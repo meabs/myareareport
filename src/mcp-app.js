@@ -4,6 +4,7 @@ import {
   applyHostFonts,
   applyHostStyleVariables,
 } from "@modelcontextprotocol/ext-apps";
+import { createApplicationJourney, runEligibilityCheck } from "./demo-data.js";
 import "./global.css";
 import "./mcp-app.css";
 
@@ -11,18 +12,19 @@ import "./mcp-app.css";
 
 const state = {
   mode: "full",
+  entryMode: null,
+  journeyPhase: null,
+  showJourney: false,
   recommendations: null,
   eligibility: null,
   applicationJourney: null,
   selectedCardId: null,
   submitted: false,
-  eligibilityChecked: false,
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 
 const appRoot = document.getElementById("app-root");
-const eligibilityForm = document.getElementById("eligibility-form");
 const expandBtn = document.getElementById("expand-btn");
 
 // ─── App instance ─────────────────────────────────────────────────────────────
@@ -50,40 +52,169 @@ function showView(viewId) {
   document.getElementById(viewId)?.classList.remove("hidden");
 }
 
-function revealApplicationSection() {
-  const section = document.getElementById("application-section");
-  if (section?.classList.contains("hidden")) {
-    section.classList.remove("hidden");
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
+const VIEW_BY_MODE = {
+  full: "view-full",
+  "card-detail": "view-card-detail",
+  journey: "view-journey",
+  eligibility: "view-journey",
+  application: "view-journey",
+};
+
+function showViewForMode(mode) {
+  showView(VIEW_BY_MODE[mode] ?? "view-full");
+}
+
+function notifyHostSize() {
+  try {
+    const height = Math.ceil(Math.max(
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight,
+      appRoot?.scrollHeight ?? 0,
+      280,
+    ));
+    const width = Math.ceil(Math.max(
+      document.documentElement.offsetWidth,
+      document.body.offsetWidth,
+      360,
+    ));
+    app.sendSizeChanged({ width, height });
+  } catch {
+    // Host not ready yet
   }
+}
+
+function journeyTargets() {
+  if (state.mode === "full") {
+    return {
+      progressId: "full-journey-progress",
+      bodyId: "full-journey-body",
+      titleId: "full-journey-title",
+    };
+  }
+  return {
+    progressId: "fragment-journey-progress",
+    bodyId: "fragment-journey-body",
+    titleId: "fragment-journey-title",
+  };
+}
+
+function setJourneyTitle(label) {
+  const { titleId } = journeyTargets();
+  const el = document.getElementById(titleId);
+  if (el) el.textContent = label;
+}
+
+function renderJourneyPhase() {
+  const { progressId, bodyId } = journeyTargets();
+  const progressEl = document.getElementById(progressId);
+  if (!progressEl || !document.getElementById(bodyId)) return;
+
+  switch (state.journeyPhase) {
+    case "eligibility-form":
+      progressEl.classList.add("hidden");
+      setJourneyTitle("Eligibility");
+      renderEligibilityForm(bodyId);
+      break;
+    case "eligibility-result":
+      progressEl.classList.add("hidden");
+      setJourneyTitle("Eligibility");
+      renderEligibilityResult(bodyId);
+      break;
+    case "application":
+      progressEl.classList.remove("hidden");
+      setJourneyTitle("Application");
+      renderJourney(progressId, bodyId);
+      break;
+    case "confirmation":
+      progressEl.classList.add("hidden");
+      setJourneyTitle("Application");
+      renderConfirmation(document.getElementById(bodyId), state.applicationJourney?.card);
+      break;
+    default:
+      break;
+  }
+  notifyHostSize();
+}
+
+function beginJourney(phase) {
+  state.journeyPhase = phase;
+  state.showJourney = true;
+  if (state.mode === "full") {
+    document.getElementById("full-journey-section")?.classList.remove("hidden");
+    renderJourneyPhase();
+    return;
+  }
+  state.mode = "journey";
+  showViewForMode("journey");
+  renderJourneyPhase();
 }
 
 // ─── Tool result routing ──────────────────────────────────────────────────────
 
-// Called only by the host (LLM-initiated tool results) — always switches mode
+function extractPayload(result) {
+  if (!result || typeof result !== "object") return {};
+  if (result.structuredContent && typeof result.structuredContent === "object") {
+    return result.structuredContent;
+  }
+  if (result.params?.structuredContent && typeof result.params.structuredContent === "object") {
+    return result.params.structuredContent;
+  }
+  if (result.kind) return result;
+  return {};
+}
+
+function hasRenderableData(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  if (payload.kind === "embedded-sales-demo") return Boolean(payload.recommendations?.cards?.length);
+  if (payload.kind === "card-recommendations") return Boolean(payload.cards?.length);
+  if (payload.kind === "eligibility-check") return true;
+  if (payload.kind === "application-journey") return Boolean(payload.steps?.length || payload.card);
+  return Boolean(payload.recommendations?.cards?.length || payload.cards?.length);
+}
+
+function showBootstrapError(message) {
+  showView("view-loading");
+  const text = document.querySelector("#view-loading .loading-text");
+  if (text) text.textContent = message;
+  notifyHostSize();
+}
+
+// Returns true when the UI was updated with real content.
 function handleToolResult(result) {
-  const payload = result?.structuredContent ?? {};
+  const payload = extractPayload(result);
+
+  // App-only tool echoes — merge data but never change view/mode
+  if (payload.kind === "card-selected") {
+    if (payload.selectedCardId) state.selectedCardId = payload.selectedCardId;
+    if (payload.recommendations) state.recommendations = payload.recommendations;
+    render();
+    return true;
+  }
+  if (payload.kind === "application-submitted") {
+    state.submitted = true;
+    render();
+    return true;
+  }
+
+  if (!hasRenderableData(payload)) return false;
 
   if (payload.kind === "embedded-sales-demo") {
     state.recommendations    = payload.recommendations;
-    state.eligibility        = payload.eligibility;
     state.applicationJourney = payload.applicationJourney;
-    state.eligibilityChecked = false;
     state.submitted          = false;
     state.selectedCardId     = payload.recommendations?.cards?.[0]?.id ?? null;
-    // Reset journey: hide the application section so it reveals progressively again
-    document.getElementById("application-section")?.classList.add("hidden");
+    state.showJourney        = false;
+    state.journeyPhase       = null;
+    state.eligibility        = null;
   }
 
   if (payload.kind === "card-recommendations") {
     state.recommendations = payload;
-    // Use explicit selectedCardId from payload if present (e.g. blackwell-card-detail)
     state.selectedCardId = payload.selectedCardId ?? payload.cards?.[0]?.id ?? state.selectedCardId;
   }
 
   if (payload.kind === "eligibility-check") {
-    state.eligibility        = payload;
-    state.eligibilityChecked = true;
+    state.eligibility = payload;
   }
 
   if (payload.kind === "application-journey") {
@@ -91,16 +222,52 @@ function handleToolResult(result) {
     state.submitted          = false;
   }
 
-  if (payload.kind === "application-submitted") {
-    state.submitted = true;
+  const incomingMode = payload.mode;
+
+  // Started in full view — fold fragment tools into the same panel
+  if (state.entryMode === "full" && incomingMode && incomingMode !== "full") {
+    if (incomingMode === "eligibility") {
+      state.journeyPhase = state.eligibility ? "eligibility-result" : "eligibility-form";
+      state.showJourney = true;
+    }
+    if (incomingMode === "application") {
+      state.journeyPhase = "application";
+      state.showJourney = true;
+    }
+    state.mode = "full";
+    showViewForMode("full");
+    render();
+    return true;
   }
 
-  // LLM tool calls always switch mode — no stayInFull here
-  const incomingMode = payload.mode;
-  if (incomingMode) state.mode = incomingMode;
+  if (incomingMode === "eligibility") {
+    state.mode = "journey";
+    state.journeyPhase = state.eligibility ? "eligibility-result" : "eligibility-form";
+    if (!state.entryMode) state.entryMode = "journey";
+    showViewForMode("journey");
+    render();
+    return true;
+  }
 
-  showView(`view-${state.mode}`);
+  if (incomingMode === "application") {
+    state.mode = "journey";
+    state.journeyPhase = "application";
+    if (!state.entryMode) state.entryMode = "journey";
+    showViewForMode("journey");
+    render();
+    return true;
+  }
+
+  if (incomingMode) {
+    state.mode = incomingMode === "eligibility" || incomingMode === "application"
+      ? "journey"
+      : incomingMode;
+    if (!state.entryMode) state.entryMode = state.mode;
+  }
+
+  showViewForMode(state.mode);
   render();
+  return true;
 }
 
 // ─── Render orchestrator ──────────────────────────────────────────────────────
@@ -110,22 +277,25 @@ function render() {
     case "full":
       renderCards();
       renderCardDetail("full-card-detail-body");
-      if (state.eligibilityChecked) {
-        revealApplicationSection();
-        renderEligibilityResult("eligibility-result");
+      if (state.showJourney && state.journeyPhase) {
+        document.getElementById("full-journey-section")?.classList.remove("hidden");
+        renderJourneyPhase();
       }
-      renderJourney("step-progress", "application-form-body");
       break;
     case "card-detail":
       renderCardDetail("fragment-card-detail-body");
       break;
+    case "journey":
     case "eligibility":
-      renderEligibilityResult("fragment-eligibility-result");
-      break;
     case "application":
-      renderJourney("fragment-step-progress", "fragment-application-form-body");
+      if (state.mode !== "journey") {
+        state.journeyPhase ??= state.mode === "application" ? "application" : "eligibility-form";
+        state.mode = "journey";
+      }
+      renderJourneyPhase();
       break;
   }
+  notifyHostSize();
 }
 
 // ─── renderCards ─────────────────────────────────────────────────────────────
@@ -159,13 +329,10 @@ function renderCards() {
     .join("");
 
   container.querySelectorAll(".card-list-item").forEach((item) => {
-    const handler = async () => {
+    const handler = () => {
       const cardId = item.dataset.cardId;
       if (cardId === state.selectedCardId) return;
-      const result = await app.callServerTool({ name: "blackwell-select-card", arguments: { cardId } });
-      const p = result?.structuredContent ?? {};
-      if (p.selectedCardId) state.selectedCardId = p.selectedCardId;
-      if (p.recommendations) state.recommendations = p.recommendations;
+      state.selectedCardId = cardId;
       renderCards();
       renderCardDetail("full-card-detail-body");
     };
@@ -216,14 +383,63 @@ function renderCardDetail(containerId) {
   `;
 
   container.querySelector("[data-action='check-eligibility']")?.addEventListener("click", () => {
-    if (state.mode === "full") {
-      revealApplicationSection();
-    } else {
-      app.callServerTool({
-        name: "blackwell-check-eligibility",
-        arguments: { creditBand: "good", annualIncome: 42000, employmentStatus: "employed", cardId: card.id },
-      }).then(handleToolResult).catch(console.error);
-    }
+    state.eligibility = null;
+    beginJourney("eligibility-form");
+  });
+}
+
+// ─── renderEligibilityForm ────────────────────────────────────────────────────
+
+function renderEligibilityForm(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const cardName = state.recommendations?.cards?.find((c) => c.id === state.selectedCardId)?.name
+    ?? "this card";
+
+  container.innerHTML = `
+    <h2 class="eligibility-heading">Check your eligibility</h2>
+    <p class="eligibility-subtitle">Tell us a little about yourself to see if you're likely to be approved for ${cardName}.</p>
+    <form class="app-form" id="frag-eligibility-form">
+      <div class="form-field">
+        <label for="frag-creditBand">Credit band</label>
+        <select id="frag-creditBand" name="creditBand">
+          <option value="fair">Fair</option>
+          <option value="good" selected>Good</option>
+          <option value="excellent">Excellent</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="frag-annualIncome">Annual income (£)</label>
+        <input type="number" id="frag-annualIncome" name="annualIncome" value="42000" min="0" step="1000" />
+      </div>
+      <div class="form-field">
+        <label for="frag-employmentStatus">Employment status</label>
+        <select id="frag-employmentStatus" name="employmentStatus">
+          <option value="employed">Employed</option>
+          <option value="self-employed">Self-employed</option>
+          <option value="student">Student</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-primary">Check my eligibility</button>
+    </form>
+  `;
+
+  document.getElementById("frag-eligibility-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Checking…"; }
+
+    const payload = runEligibilityCheck({
+      creditBand:       fd.get("creditBand"),
+      annualIncome:     Number(fd.get("annualIncome")),
+      employmentStatus: fd.get("employmentStatus"),
+      cardId:           state.selectedCardId ?? "blackwell-rewards",
+    });
+    state.eligibility = payload;
+    state.journeyPhase = "eligibility-result";
+    renderEligibilityResult(containerId);
   });
 }
 
@@ -236,7 +452,10 @@ function renderEligibilityResult(containerId) {
   const { decision, creditLimit, recommendedCard } = state.eligibility;
   const isPreQualified = decision === "pre-qualified";
 
-  const successBoxHtml = isPreQualified ? `
+  const successBoxHtml = `
+    <h2 class="eligibility-heading">Your eligibility result</h2>
+    <p class="eligibility-subtitle">Based on the information you've provided</p>
+    ${isPreQualified ? `
     <div class="eligibility-success-box">
       <div class="eligibility-check-circle">✓</div>
       <div>
@@ -244,7 +463,7 @@ function renderEligibilityResult(containerId) {
         <p class="eligibility-success-desc">Congratulations! Based on the information you've entered, you're likely to be approved for the ${recommendedCard?.name ?? "card"}.</p>
       </div>
     </div>
-  ` : `<div class="eligibility-badge refer">⚠ Manual review required</div>`;
+  ` : `<div class="eligibility-badge refer">⚠ Manual review required</div>`}`;
 
   const statsHtml = isPreQualified && recommendedCard ? `
     <div class="eligibility-stats">
@@ -280,28 +499,19 @@ function renderEligibilityResult(containerId) {
     ${statsHtml}
   `;
 
-  container.querySelector("[data-action='continue-application']")?.addEventListener("click", async () => {
-    if (state.mode === "full") {
-      // Already showing the stepper in the panel below — just scroll to it
-      document.getElementById("step-progress")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      const result = await app.callServerTool({
-        name: "blackwell-apply",
-        arguments: { cardId: recommendedCard?.id ?? "blackwell-rewards" },
-      });
-      handleToolResult(result);
-    }
+  container.querySelector("[data-action='continue-application']")?.addEventListener("click", () => {
+    state.applicationJourney = createApplicationJourney({
+      cardId: recommendedCard?.id ?? "blackwell-rewards",
+    });
+    state.submitted = false;
+    state.journeyPhase = "application";
+    renderJourneyPhase();
   });
 
   container.querySelector("[data-action='check-different']")?.addEventListener("click", () => {
-    if (state.mode === "eligibility") {
-      // Return to full browse view
-      app.callServerTool({ name: "blackwell-browse-cards", arguments: {} })
-        .then(handleToolResult).catch(console.error);
-    } else {
-      container.innerHTML = "";
-      state.eligibilityChecked = false;
-    }
+    state.eligibility = null;
+    state.journeyPhase = "eligibility-form";
+    renderEligibilityForm(containerId);
   });
 }
 
@@ -356,16 +566,9 @@ function renderJourney(progressId, formId) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const applicantName = (fd.get("fullName") || "Alex").toString().trim();
-    const cardId = card?.id ?? "blackwell-rewards";
-
-    await app.callServerTool({ name: "blackwell-submit-application", arguments: { cardId, applicantName } });
     state.submitted = true;
+    state.journeyPhase = "confirmation";
     renderConfirmation(formContainer, card);
-
-    app.sendMessage({
-      role: "user",
-      content: [{ type: "text", text: `My application for the ${card?.name ?? "card"} has been submitted.` }],
-    }).catch(() => {});
   });
 }
 
@@ -397,10 +600,19 @@ function renderConfirmation(container, card) {
 
   document.getElementById("return-to-card-btn")?.addEventListener("click", () => {
     state.submitted = false;
-    renderJourney(
-      state.mode === "full" ? "step-progress" : "fragment-step-progress",
-      state.mode === "full" ? "application-form-body" : "fragment-application-form-body",
-    );
+    state.showJourney = false;
+    state.journeyPhase = null;
+    state.eligibility = null;
+    document.getElementById("full-journey-section")?.classList.add("hidden");
+    if (state.entryMode === "full" || state.mode === "full") {
+      state.mode = "full";
+      showViewForMode("full");
+    } else {
+      state.mode = "journey";
+      state.journeyPhase = "eligibility-result";
+      showViewForMode("journey");
+    }
+    render();
   });
 }
 
@@ -449,36 +661,24 @@ function getFormFieldsForStep(stepTitle) {
 
 // ─── Event listeners ──────────────────────────────────────────────────────────
 
-// Eligibility form (full view) — handled directly, does not switch mode
-eligibilityForm?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const result = await app.callServerTool({
-    name: "blackwell-check-eligibility",
-    arguments: {
-      creditBand:       fd.get("creditBand"),
-      annualIncome:     Number(fd.get("annualIncome")),
-      employmentStatus: fd.get("employmentStatus"),
-      cardId:           state.selectedCardId ?? "blackwell-rewards",
-    },
-  });
-  const payload = result?.structuredContent ?? {};
-  if (payload.kind === "eligibility-check") {
-    state.eligibility        = payload;
-    state.eligibilityChecked = true;
-    revealApplicationSection();
-    renderEligibilityResult("eligibility-result");
-
-    const { decision, creditLimit, recommendedCard } = payload;
-    app.updateModelContext({
-      content: [{
-        type: "text",
-        text: decision === "pre-qualified"
-          ? `Customer pre-qualified for ${recommendedCard?.name ?? "card"}, credit limit ${creditLimit ?? "£4,000"}.`
-          : "Customer referred for manual review — no instant offer.",
-      }],
-    }).catch(() => {});
+document.getElementById("journey-back")?.addEventListener("click", () => {
+  if (state.journeyPhase === "application" || state.journeyPhase === "confirmation") {
+    state.journeyPhase = "eligibility-result";
+    state.submitted = false;
+    renderJourneyPhase();
+    return;
   }
+  state.journeyPhase = null;
+  state.showJourney = false;
+  state.eligibility = null;
+  if (state.entryMode === "full") {
+    state.mode = "full";
+    showViewForMode("full");
+  } else {
+    state.mode = "card-detail";
+    showViewForMode("card-detail");
+  }
+  render();
 });
 
 // Expand to fullscreen button
@@ -488,16 +688,52 @@ expandBtn?.addEventListener("click", async () => {
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
-// Register ALL handlers before connect — host fires ontoolresult with the
-// correct tool's data; no self-initiated bootstrap call needed.
+let bootstrapped = false;
+
+async function bootstrapFromFallback() {
+  if (bootstrapped) return true;
+
+  const candidates = [
+    "https://garry-demo.meaburn.com/api/demo",
+    "http://localhost:3001/api/demo",
+  ];
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) continue;
+      const payload = await res.json();
+      if (handleToolResult({ structuredContent: payload })) {
+        bootstrapped = true;
+        return true;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+  return false;
+}
+
 app.onhostcontextchanged = (ctx) => {
   applyHostContext(ctx);
 };
-app.ontoolresult = handleToolResult;
-app.onerror      = console.error;
-app.onteardown   = async () => ({});
+app.ontoolresult = (result) => {
+  if (handleToolResult(result)) bootstrapped = true;
+};
+app.onerror = console.error;
+app.onteardown = async () => ({});
 
-app.connect().then(() => {
+app.connect().catch(console.error).then(async () => {
   const ctx = app.getHostContext();
   if (ctx) applyHostContext(ctx);
+
+  // ChatGPT may fire ontoolresult before structuredContent is populated — retry.
+  for (const delay of [400, 1200, 2500]) {
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    if (bootstrapped) return;
+    await bootstrapFromFallback();
+  }
+
+  if (!bootstrapped) {
+    showBootstrapError("Unable to load cards. Try: Show me Blackwell Bank credit cards");
+  }
 });
