@@ -1,6 +1,19 @@
-# MyAreaReport API
+# MyAreaReport
 
-Stage 0 — Repository Bootstrap + Observability
+UK area reports using public data: crime, flood, and planning.
+
+## Pages
+
+- **Homepage** — `http://localhost:3000` — postcode search
+- **Report** — `http://localhost:3000/report/{postcode}` — full area report
+- **Demo** — `http://localhost:3000/demo` — compact fragments for embedded use
+- **Privacy** — `http://localhost:3000/privacy`
+- **Terms** — `http://localhost:3000/terms`
+- **Data Sources** — `http://localhost:3000/data-sources`
+
+## MCP Server
+
+An MCP server exposing 5 tools is available in `apps/mcp/`. See [docs/mcp-usage.md](docs/mcp-usage.md) for tool descriptions, usage examples, and integration instructions.
 
 ## Local Development
 
@@ -72,8 +85,10 @@ See `infra/.env.example` for all supported variables.
 ```
 myareareport/
 ├── apps/
-│   └── api/           # FastAPI application
+│   ├── api/           # FastAPI application
+│   ├── web/           # Next.js web app
+│   └── mcp/           # MCP server (5 tools)
 ├── infra/             # Docker Compose, Caddy, env config
-├── docs/              # Build instructions
+├── docs/              # Documentation and checklists
 └── README.md
 ```
