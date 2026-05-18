@@ -2,10 +2,12 @@ export interface SourceRef { name: string; url: string }
 export interface Area { postcode: string; latitude: number; longitude: number; admin_district: string | null; admin_county: string | null; region: string | null; country: string; source: string }
 export interface CrimeCategorySummary { category: string; count: number }
 export interface MonthlyCount { month: string; count: number }
-export interface CrimeSummary { postcode: string; period_months: number; total_incidents: number; top_categories: CrimeCategorySummary[]; monthly_trend: MonthlyCount[]; source: string; caveats: string[]; summary: string | null }
+export interface CrimeSummary { postcode: string; period_months: number; total_incidents: number; top_categories: CrimeCategorySummary[]; monthly_trend: MonthlyCount[]; source: string; updated_frequency?: string; caveats: string[]; summary: string | null }
 export interface FloodWarning { severity: string; message: string; area: string; source: string }
 export interface FloodStation { label: string; distance_km: number | null; latest_level_m: number | null; timestamp: string | null }
 export interface FloodRiskSummary { postcode: string; current_warnings: FloodWarning[]; nearest_stations: FloodStation[]; summary: string; source: string; caveats: string[] }
+export interface PlanningApplication { reference: string; status: string; description: string; address: string; distance_km: number | null; decision_date: string | null; source: string }
+export interface PlanningSummary { postcode: string; radius_km: number; application_count: number; applications: PlanningApplication[]; summary: string; caveats: string[] }
 export type SectionStatus = 'available' | 'unavailable' | 'not_implemented' | 'error' | 'empty'
 export interface AreaSection { status: SectionStatus; data: Area | null }
 export interface CrimeSection { status: SectionStatus; summary: string | null; data: CrimeSummary | null }
