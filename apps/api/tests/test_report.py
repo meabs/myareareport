@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.models.area import Area
 from app.models.crime import CrimeCategorySummary, CrimeSummary, MonthlyCount
+from app.models.flood import FloodRiskSummary
 from app.providers.postcodes_io import PostcodeNotFoundError
 
 client = TestClient(app)
@@ -39,9 +40,22 @@ VALID_CRIME = CrimeSummary(
     ],
 )
 
+VALID_FLOOD = FloodRiskSummary(
+    postcode="SW1A1AA",
+    current_warnings=[],
+    nearest_stations=[],
+    summary="No current flood warnings were found near this postcode.",
+    caveats=[
+        "Flood data can change quickly.",
+        "Use official flood warning services for current emergency information.",
+        "This service is not insurance or emergency advice.",
+    ],
+)
+
 # Patch targets
 AREA_GET_PATCH = "app.services.report_service.AreaService.get_area"
 CRIME_GET_PATCH = "app.services.report_service.CrimeService.get_crime_summary"
+FLOOD_GET_PATCH = "app.services.report_service.FloodService.get_flood_summary"
 
 
 # ---------------------------------------------------------------------------
@@ -53,6 +67,7 @@ def test_valid_report_area_and_crime_available() -> None:
     with (
         patch(AREA_GET_PATCH, new_callable=AsyncMock, return_value=VALID_AREA),
         patch(CRIME_GET_PATCH, new_callable=AsyncMock, return_value=VALID_CRIME),
+        patch(FLOOD_GET_PATCH, new_callable=AsyncMock, return_value=VALID_FLOOD),
     ):
         response = client.get("/report/SW1A1AA")
 
@@ -69,21 +84,22 @@ def test_valid_report_area_and_crime_available() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 2: Flood and planning sections have status "not_implemented"
+# Test 2: Flood section is "available" when FloodService succeeds; planning is "not_implemented"
 # ---------------------------------------------------------------------------
 
 
-def test_flood_and_planning_sections_not_implemented() -> None:
+def test_flood_available_and_planning_not_implemented() -> None:
     with (
         patch(AREA_GET_PATCH, new_callable=AsyncMock, return_value=VALID_AREA),
         patch(CRIME_GET_PATCH, new_callable=AsyncMock, return_value=VALID_CRIME),
+        patch(FLOOD_GET_PATCH, new_callable=AsyncMock, return_value=VALID_FLOOD),
     ):
         response = client.get("/report/SW1A1AA")
 
     assert response.status_code == 200
     data = response.json()
 
-    assert data["sections"]["flood"]["status"] == "not_implemented"
+    assert data["sections"]["flood"]["status"] == "available"
     assert data["sections"]["planning"]["status"] == "not_implemented"
     assert data["sections"]["flood"]["summary"] is not None
     assert data["sections"]["planning"]["summary"] is not None
@@ -102,6 +118,7 @@ def test_crime_failure_does_not_crash_report() -> None:
             new_callable=AsyncMock,
             side_effect=RuntimeError("crime service exploded"),
         ),
+        patch(FLOOD_GET_PATCH, new_callable=AsyncMock, return_value=VALID_FLOOD),
     ):
         response = client.get("/report/SW1A1AA")
 
@@ -143,6 +160,7 @@ def test_generated_at_is_timezone_aware() -> None:
     with (
         patch(AREA_GET_PATCH, new_callable=AsyncMock, return_value=VALID_AREA),
         patch(CRIME_GET_PATCH, new_callable=AsyncMock, return_value=VALID_CRIME),
+        patch(FLOOD_GET_PATCH, new_callable=AsyncMock, return_value=VALID_FLOOD),
     ):
         response = client.get("/report/SW1A1AA")
 
@@ -161,6 +179,7 @@ def test_sources_include_postcodes_io() -> None:
     with (
         patch(AREA_GET_PATCH, new_callable=AsyncMock, return_value=VALID_AREA),
         patch(CRIME_GET_PATCH, new_callable=AsyncMock, return_value=VALID_CRIME),
+        patch(FLOOD_GET_PATCH, new_callable=AsyncMock, return_value=VALID_FLOOD),
     ):
         response = client.get("/report/SW1A1AA")
 
@@ -178,6 +197,7 @@ def test_sources_include_police_uk_when_crime_available() -> None:
     with (
         patch(AREA_GET_PATCH, new_callable=AsyncMock, return_value=VALID_AREA),
         patch(CRIME_GET_PATCH, new_callable=AsyncMock, return_value=VALID_CRIME),
+        patch(FLOOD_GET_PATCH, new_callable=AsyncMock, return_value=VALID_FLOOD),
     ):
         response = client.get("/report/SW1A1AA")
 
@@ -199,6 +219,7 @@ def test_sources_exclude_police_uk_when_crime_unavailable() -> None:
             new_callable=AsyncMock,
             side_effect=RuntimeError("crime service unavailable"),
         ),
+        patch(FLOOD_GET_PATCH, new_callable=AsyncMock, return_value=VALID_FLOOD),
     ):
         response = client.get("/report/SW1A1AA")
 

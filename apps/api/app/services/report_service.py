@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from app.models.report import (
     AreaSection,
     CrimeSection,
+    FloodSection,
     PlaceholderSection,
     Report,
     ReportSections,
@@ -12,7 +13,8 @@ from app.models.report import (
 )
 from app.services.area_service import AreaService, normalise_postcode
 from app.services.crime_service import CrimeService
-from app.summaries import flood_summary, planning_summary
+from app.services.flood_service import FloodService
+from app.summaries import planning_summary
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,10 @@ CRIME_MONTHS = 12
 SOURCES: dict[str, SourceRef] = {
     "postcodes.io": SourceRef(name="postcodes.io", url="https://postcodes.io/"),
     "police.uk": SourceRef(name="police.uk", url="https://data.police.uk/"),
+    "environment_agency": SourceRef(
+        name="Environment Agency",
+        url="https://environment.data.gov.uk/flood-monitoring/",
+    ),
 }
 
 
@@ -29,9 +35,11 @@ class ReportService:
         self,
         area_service: AreaService | None = None,
         crime_service: CrimeService | None = None,
+        flood_service: FloodService | None = None,
     ) -> None:
         self._area_service = area_service or AreaService()
         self._crime_service = crime_service or CrimeService()
+        self._flood_service = flood_service or FloodService()
 
     async def get_report(self, postcode: str) -> Report:
         normalised = normalise_postcode(postcode)
@@ -60,10 +68,21 @@ class ReportService:
                 data=None,
             )
 
-        flood_section = PlaceholderSection(
-            status=SectionStatus.not_implemented,
-            summary=flood_summary.generate_placeholder(),
-        )
+        # Flood — absorb any failure, do not crash the report
+        try:
+            flood_data = await self._flood_service.get_flood_summary(normalised)
+            flood_section = FloodSection(
+                status=SectionStatus.available,
+                summary=flood_data.summary,
+                data=flood_data,
+            )
+        except Exception:
+            logger.warning("Flood service failed for %s; marking section unavailable", normalised)
+            flood_section = FloodSection(
+                status=SectionStatus.unavailable,
+                summary=None,
+                data=None,
+            )
 
         planning_section = PlaceholderSection(
             status=SectionStatus.not_implemented,
@@ -73,6 +92,8 @@ class ReportService:
         sources: list[SourceRef] = [SOURCES["postcodes.io"]]
         if crime_section.status == SectionStatus.available:
             sources.append(SOURCES["police.uk"])
+        if flood_section.status == SectionStatus.available:
+            sources.append(SOURCES["environment_agency"])
 
         return Report(
             postcode=area.postcode,
