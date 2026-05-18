@@ -17,6 +17,7 @@ class CrimeSummary(BaseModel):
     total_incidents: int
     top_categories: list[CrimeCategorySummary]
     monthly_trend: list[MonthlyCount]
+    summary: str | None = None
     source: str = "police.uk"
     updated_frequency: str = "Monthly"
     caveats: list[str]

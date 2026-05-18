@@ -244,3 +244,31 @@ def test_invalid_postcode_returns_404() -> None:
     error = response.json()["error"]
     assert error["code"] == "invalid_postcode"
     assert error["retryable"] is False
+
+
+# ---------------------------------------------------------------------------
+# Test 8: summary field is non-None for a valid response (Stage 3)
+# ---------------------------------------------------------------------------
+
+
+def test_summary_field_is_populated() -> None:
+    months = ["2025-03", "2025-04"]
+
+    with (
+        patch(AREA_GET_PATCH, new_callable=AsyncMock, return_value=VALID_AREA),
+        patch(
+            POLICE_GET_PATCH,
+            new_callable=AsyncMock,
+            side_effect=[INCIDENT_BATCH_A, INCIDENT_BATCH_B],
+        ),
+        patch(MONTHS_PATCH, return_value=months),
+        patch(GET_CACHED_PATCH, new_callable=AsyncMock, return_value=None),
+        patch(SET_CACHED_PATCH, new_callable=AsyncMock),
+    ):
+        response = client.get("/crime/SW1A1AA?months=2")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["summary"] is not None
+    assert isinstance(data["summary"], str)
+    assert len(data["summary"]) > 0

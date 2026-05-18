@@ -6,6 +6,7 @@ from app.cache.redis_cache import get_cached, set_cached
 from app.models.crime import CrimeCategorySummary, CrimeSummary, MonthlyCount
 from app.providers.police_uk import PoliceUkProvider
 from app.services.area_service import AreaService
+from app.summaries import crime_summary as crime_summary_engine
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ class CrimeService:
             for m in date_strings  # already ascending
         ]
 
-        summary = CrimeSummary(
+        crime_data = CrimeSummary(
             postcode=normalised,
             period_months=months,
             total_incidents=sum(category_counter.values()),
@@ -100,6 +101,8 @@ class CrimeService:
             monthly_trend=monthly_trend,
             caveats=CAVEATS,
         )
+        crime_data.summary = crime_summary_engine.generate(crime_data)
+        summary = crime_data
 
         await set_cached(cache_key, summary.model_dump(), CACHE_TTL)
 
