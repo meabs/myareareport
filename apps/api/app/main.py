@@ -8,6 +8,7 @@ from app.observability import init_sentry
 from app.routers.area import router as area_router
 from app.routers.crime import router as crime_router
 from app.routers.health import router as health_router
+from app.routers.report import router as report_router
 
 configure_logging()
 init_sentry()
@@ -34,6 +35,7 @@ async def root() -> dict[str, str]:
 app.include_router(health_router)
 app.include_router(area_router)
 app.include_router(crime_router)
+app.include_router(report_router)
 
 
 if settings.app_env == "development":
