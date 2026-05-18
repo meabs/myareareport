@@ -4,7 +4,7 @@ from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
 from app.errors import ErrorDetail, ErrorResponse
-from app.models.crime import CrimeSummary
+from app.models.crime import CrimeIncidentList, CrimeSummary
 from app.providers.police_uk import PoliceUkProviderError, PoliceUkProviderTimeoutError
 from app.providers.postcodes_io import PostcodeNotFoundError, ProviderUnavailableError
 from app.services.crime_service import CrimeService
@@ -48,3 +48,28 @@ async def get_crime(
             )
         )
         return JSONResponse(status_code=503, content=body.model_dump())
+
+
+@router.get(
+    "/crime/{postcode}/incidents",
+    response_model=CrimeIncidentList,
+    responses={404: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+)
+async def get_crime_incidents(
+    postcode: str,
+    months: int = Query(default=3, ge=1, le=6),
+) -> CrimeIncidentList | JSONResponse:
+    try:
+        return await _service.get_crime_incidents(postcode, months)
+    except PostcodeNotFoundError:
+        detail = ErrorDetail(
+            code="invalid_postcode", message="The postcode was not found.", retryable=False
+        )
+        return JSONResponse(status_code=404, content=ErrorResponse(error=detail).model_dump())
+    except (PoliceUkProviderTimeoutError, PoliceUkProviderError, ProviderUnavailableError):
+        detail = ErrorDetail(
+            code="provider_unavailable",
+            message="Crime data is temporarily unavailable.",
+            retryable=True,
+        )
+        return JSONResponse(status_code=503, content=ErrorResponse(error=detail).model_dump())

@@ -49,3 +49,24 @@ class PoliceUkProvider:
 
         result: list[dict[str, object]] = response.json()
         return result
+
+    async def get_stop_search(self, lat: float, lng: float, date: str) -> list[dict[str, object]]:
+        """Fetch stop and search records for a lat/lng and YYYY-MM date string."""
+        url = f"{self.BASE_URL}/stops-street"
+        params: dict[str, str | float] = {"lat": lat, "lng": lng, "date": date}
+        try:
+            async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
+                response = await client.get(url, params=params)
+        except httpx.TimeoutException as exc:
+            raise PoliceUkProviderTimeoutError(f"stops-street timed out for {date}") from exc
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
+            raise PoliceUkProviderError(f"Unexpected error from stops-street: {exc}") from exc
+
+        if response.status_code in (404, 429):
+            return []
+        if not response.is_success:
+            return []
+
+        result: list[dict[str, object]] = response.json()
+        return result

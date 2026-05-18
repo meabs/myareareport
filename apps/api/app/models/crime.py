@@ -1,6 +1,22 @@
 from pydantic import BaseModel
 
 
+class CrimeIncident(BaseModel):
+    category: str
+    latitude: float
+    longitude: float
+    street: str
+    month: str
+
+
+class CrimeIncidentList(BaseModel):
+    postcode: str
+    period_months: int
+    total: int
+    incidents: list[CrimeIncident]
+    source: str = "police.uk"
+
+
 class CrimeCategorySummary(BaseModel):
     category: str
     count: int

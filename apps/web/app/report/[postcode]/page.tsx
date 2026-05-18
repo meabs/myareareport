@@ -3,6 +3,7 @@ import { getReport } from '@/lib/api'
 import AreaSummaryCard from '@/components/AreaSummaryCard'
 import CrimeTrendCard from '@/components/CrimeTrendCard'
 import FloodRiskCard from '@/components/FloodRiskCard'
+import MapWrapper from '@/components/MapWrapper'
 import PlanningApplicationsCard from '@/components/PlanningApplicationsCard'
 import SourceCaveatFooter from '@/components/SourceCaveatFooter'
 
@@ -69,6 +70,13 @@ export default async function ReportPage({ params }: Props) {
 
         <div className="space-y-4">
           <AreaSummaryCard area={report.area} />
+          {report.area.status === 'available' && report.area.data && (
+            <MapWrapper
+              postcode={report.postcode}
+              lat={report.area.data.latitude}
+              lng={report.area.data.longitude}
+            />
+          )}
           <CrimeTrendCard crime={report.sections.crime} />
           <FloodRiskCard flood={report.sections.flood} />
           <PlanningApplicationsCard planning={report.sections.planning} />

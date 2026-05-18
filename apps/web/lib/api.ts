@@ -16,10 +16,59 @@ export interface PlaceholderSection { status: SectionStatus; summary: string | n
 export interface ReportSections { crime: CrimeSection; flood: FloodSection; planning: PlaceholderSection }
 export interface Report { postcode: string; generated_at: string; area: AreaSection; sections: ReportSections; sources: SourceRef[] }
 
+export interface CrimeIncident {
+  category: string
+  latitude: number
+  longitude: number
+  street: string
+  month: string
+}
+
+export interface CrimeIncidentList {
+  postcode: string
+  period_months: number
+  total: number
+  incidents: CrimeIncident[]
+  source: string
+}
+
+export interface StopSearchRecord {
+  type: string
+  date: string
+  latitude: number | null
+  longitude: number | null
+  gender: string | null
+  age_range: string | null
+  self_defined_ethnicity: string | null
+  object_of_search: string | null
+  outcome: string | null
+}
+
+export interface StopSearchSummary {
+  postcode: string
+  period_months: number
+  total: number
+  records: StopSearchRecord[]
+  source: string
+  caveats: string[]
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 export async function getReport(postcode: string): Promise<Report | null> {
   const res = await fetch(`${API_URL}/report/${encodeURIComponent(postcode)}`, { next: { revalidate: 300 } })
+  if (!res.ok) return null
+  return res.json()
+}
+
+export async function getCrimeIncidents(postcode: string, months = 3): Promise<CrimeIncidentList | null> {
+  const res = await fetch(`${API_URL}/crime/${encodeURIComponent(postcode)}/incidents?months=${months}`, { cache: 'no-store' })
+  if (!res.ok) return null
+  return res.json()
+}
+
+export async function getStopSearch(postcode: string, months = 3): Promise<StopSearchSummary | null> {
+  const res = await fetch(`${API_URL}/stop-search/${encodeURIComponent(postcode)}?months=${months}`, { cache: 'no-store' })
   if (!res.ok) return null
   return res.json()
 }

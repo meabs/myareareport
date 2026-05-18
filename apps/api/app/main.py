@@ -11,6 +11,7 @@ from app.routers.flood import router as flood_router
 from app.routers.health import router as health_router
 from app.routers.planning import router as planning_router
 from app.routers.report import router as report_router
+from app.routers.stop_search import router as stop_search_router
 
 configure_logging()
 init_sentry()
@@ -40,6 +41,7 @@ app.include_router(crime_router)
 app.include_router(flood_router)
 app.include_router(planning_router)
 app.include_router(report_router)
+app.include_router(stop_search_router)
 
 
 if settings.app_env == "development":
