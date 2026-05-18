@@ -36,6 +36,10 @@ class PoliceUkProvider:
                 f"Unexpected error contacting police.uk: {exc}"
             ) from exc
 
+        if response.status_code in (404, 429):
+            # 404: month not yet published; 429: rate limited — skip silently
+            return []
+
         if not response.is_success:
             err = RuntimeError(
                 f"Unexpected status {response.status_code} from police.uk"

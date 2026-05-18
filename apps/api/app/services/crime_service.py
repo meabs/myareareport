@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections import Counter
 from datetime import date
@@ -72,7 +73,9 @@ class CrimeService:
         category_counter: Counter[str] = Counter()
         month_counter: Counter[str] = Counter()
 
-        for date_str in date_strings:
+        for i, date_str in enumerate(date_strings):
+            if i > 0:
+                await asyncio.sleep(0.3)
             incidents = await self._provider.get_street_crime(
                 lat=area.latitude,
                 lng=area.longitude,
