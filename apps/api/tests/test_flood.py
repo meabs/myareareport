@@ -10,6 +10,7 @@ from app.main import app
 from app.models.area import Area
 from app.models.crime import CrimeCategorySummary, CrimeSummary, MonthlyCount
 from app.models.flood import FloodRiskSummary, FloodStation, FloodWarning
+from app.models.planning import PlanningSummary
 from app.providers.environment_agency import (
     EnvironmentAgencyProviderTimeoutError,
 )
@@ -81,6 +82,18 @@ NO_WARNINGS_FLOOD_SUMMARY = FloodRiskSummary(
     ],
 )
 
+VALID_PLANNING = PlanningSummary(
+    postcode="SW1A1AA",
+    radius_km=2.0,
+    application_count=0,
+    applications=[],
+    summary="No nearby planning applications were found within 2.0 km.",
+    caveats=[
+        "Planning data coverage varies by local authority.",
+        "Some applications may be missing or delayed depending on council publication practices.",
+    ],
+)
+
 # Patch targets
 AREA_GET_PATCH = "app.services.flood_service.AreaService.get_area"
 WARNINGS_PATCH = "app.services.flood_service.EnvironmentAgencyProvider.get_flood_warnings"
@@ -91,6 +104,7 @@ CACHE_SET_PATCH = "app.services.flood_service.set_cached"
 REPORT_AREA_PATCH = "app.services.report_service.AreaService.get_area"
 REPORT_CRIME_PATCH = "app.services.report_service.CrimeService.get_crime_summary"
 REPORT_FLOOD_PATCH = "app.services.report_service.FloodService.get_flood_summary"
+REPORT_PLANNING_PATCH = "app.services.report_service.PlanningService.get_planning_summary"
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +225,7 @@ def test_report_flood_available() -> None:
         patch(REPORT_AREA_PATCH, new_callable=AsyncMock, return_value=VALID_AREA),
         patch(REPORT_CRIME_PATCH, new_callable=AsyncMock, return_value=VALID_CRIME),
         patch(REPORT_FLOOD_PATCH, new_callable=AsyncMock, return_value=VALID_FLOOD_SUMMARY),
+        patch(REPORT_PLANNING_PATCH, new_callable=AsyncMock, return_value=VALID_PLANNING),
     ):
         response = client.get("/report/SW1A1AA")
 
@@ -238,6 +253,7 @@ def test_report_flood_unavailable_does_not_crash() -> None:
             new_callable=AsyncMock,
             side_effect=RuntimeError("flood service exploded"),
         ),
+        patch(REPORT_PLANNING_PATCH, new_callable=AsyncMock, return_value=VALID_PLANNING),
     ):
         response = client.get("/report/SW1A1AA")
 

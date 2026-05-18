@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.models.area import Area
 from app.models.crime import CrimeSummary
 from app.models.flood import FloodRiskSummary
+from app.models.planning import PlanningSummary
 
 
 class SectionStatus(StrEnum):
@@ -44,10 +45,16 @@ class AreaSection(BaseModel):
     data: Area | None
 
 
+class PlanningSection(BaseModel):
+    status: SectionStatus
+    summary: str | None
+    data: PlanningSummary | None
+
+
 class ReportSections(BaseModel):
     crime: CrimeSection
     flood: FloodSection
-    planning: PlaceholderSection
+    planning: PlanningSection
 
 
 class Report(BaseModel):

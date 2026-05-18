@@ -9,6 +9,7 @@ from app.routers.area import router as area_router
 from app.routers.crime import router as crime_router
 from app.routers.flood import router as flood_router
 from app.routers.health import router as health_router
+from app.routers.planning import router as planning_router
 from app.routers.report import router as report_router
 
 configure_logging()
@@ -37,6 +38,7 @@ app.include_router(health_router)
 app.include_router(area_router)
 app.include_router(crime_router)
 app.include_router(flood_router)
+app.include_router(planning_router)
 app.include_router(report_router)
 
 
