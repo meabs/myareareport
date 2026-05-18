@@ -16,7 +16,7 @@ from tools.planning_activity import get_planning_activity as _get_planning_activ
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
-mcp = FastMCP("MyAreaReport")
+mcp = FastMCP("MyAreaReport", host="0.0.0.0", port=8001)
 
 
 @mcp.tool()
@@ -52,6 +52,6 @@ async def compare_areas(postcode_a: str, postcode_b: str) -> dict:
 if __name__ == "__main__":
     transport = os.getenv("MCP_TRANSPORT", "stdio")
     if transport == "sse":
-        mcp.run(transport="sse", host="0.0.0.0", port=8001)
+        mcp.run(transport="sse")
     else:
         mcp.run()
