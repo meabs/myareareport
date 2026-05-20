@@ -241,8 +241,9 @@ Compare crime, flood risk, and planning activity between two UK postcodes side b
     "crime": {
       "area_a_total": 150,
       "area_b_total": 320,
-      "area_a_summary": "Moderate crime levels ...",
-      "area_b_summary": "High crime levels ..."
+      "area_a_summary": "Reported crime levels were broadly stable over the selected period.",
+      "area_b_summary": "Reported incidents increased over the selected period.",
+      "incident_delta_b_minus_a": 170
     },
     "flood": {
       "area_a_warnings": 0,
@@ -259,6 +260,40 @@ Compare crime, flood risk, and planning activity between two UK postcodes side b
   ]
 }
 ```
+
+---
+
+### `briefing_for_postcode`
+
+One-shot briefing: area, crime, flood, and planning for a single postcode. Returns `widget_url`, `shareable_summary`, and `suggested_followups`.
+
+### `flood_check`
+
+Focused flood warning check (same data as `get_flood_risk`, optimised for flood-only questions).
+
+### `get_stop_search_stats`
+
+Stop and search records from police.uk (1–12 months). Not an indicator of guilt.
+
+### `compare_postcodes_list`
+
+Compare up to five postcodes; returns carousel-friendly `items` for the compare-list widget.
+
+### `explain_dataset`
+
+Educational copy about data sources. Topics: `crime`, `flood`, `planning`, `stop_search`.
+
+### ChatGPT response fields
+
+Successful tool responses may include:
+
+| Field | Purpose |
+|-------|---------|
+| `widget_url` | Hosted inline UI at `/widgets/...` |
+| `suggested_followups` | Prompts for the model to offer next |
+| `shareable_summary` | Neutral markdown for the user to copy |
+
+Set `WIDGET_BASE_URL` (default `http://localhost:3000`) when deploying.
 
 ---
 

@@ -11,9 +11,26 @@ UK area reports using public data: crime, flood, and planning.
 - **Terms** — `http://localhost:3000/terms`
 - **Data Sources** — `http://localhost:3000/data-sources`
 
+## ChatGPT App / App Store
+
+MyAreaReport is designed as a **ChatGPT App** (MCP + hosted inline widgets), not only a website.
+
+| Resource | Description |
+|----------|-------------|
+| [docs/sub.md](docs/sub.md) | Submission readiness audit |
+| [docs/visibility-roadmap.md](docs/visibility-roadmap.md) | Visibility feature tiers |
+| [docs/chatgpt-demo-script.md](docs/chatgpt-demo-script.md) | Prompts for ChatGPT testing & screenshots |
+| [plugins/myareareport/](plugins/myareareport/) | Codex plugin manifest, `.mcp.json`, `.app.json` |
+
+**Widget routes** (live API data): `/widgets/briefing`, `/widgets/compare`, `/widgets/compare-list`, `/widgets/crime`, `/widgets/flood`, `/widgets/planning`, `/widgets/stop-search`, `/widgets/area`.
+
+Before submitting: set `WIDGET_BASE_URL`, `MCP_PUBLIC_URL`, and legal URLs in `plugins/myareareport/.codex-plugin/plugin.json` to your production domain.
+
 ## MCP Server
 
-An MCP server exposing 5 tools is available in `apps/mcp/`. See [docs/mcp-usage.md](docs/mcp-usage.md) for tool descriptions, usage examples, and integration instructions.
+An MCP server in `apps/mcp/` exposes tools for UK postcode data. Each successful response can include `widget_url`, `suggested_followups`, and `shareable_summary` for ChatGPT hosts.
+
+See [docs/mcp-usage.md](docs/mcp-usage.md) for tool descriptions and integration instructions.
 
 ## Local Development
 
@@ -37,7 +54,7 @@ curl http://localhost:8000/
 curl http://localhost:8000/health
 ```
 
-The Caddy reverse proxy is available at `http://localhost:8080`.
+The Caddy reverse proxy is available at `http://localhost:8888` (API under `/api`, MCP SSE under `/mcp`).
 
 ### Run Tests Locally
 
@@ -87,7 +104,9 @@ myareareport/
 ├── apps/
 │   ├── api/           # FastAPI application
 │   ├── web/           # Next.js web app
-│   └── mcp/           # MCP server (5 tools)
+│   └── mcp/           # MCP server (tools + ChatGPT metadata)
+├── plugins/           # Codex / ChatGPT plugin package
+├── .agents/plugins/   # Local marketplace.json
 ├── infra/             # Docker Compose, Caddy, env config
 ├── docs/              # Documentation and checklists
 └── README.md

@@ -1,49 +1,71 @@
 import { FloodRiskSummary, SectionStatus } from '@/lib/api'
+import { DropletIcon } from '@/components/ui/WidgetIcons'
+import { WidgetCaveatFooter } from '@/components/fragments/WidgetCaveatFooter'
 
 interface Props {
   flood: FloodRiskSummary | null
   status: SectionStatus
 }
 
+function WarningBadge({ count }: { count: number }) {
+  if (count === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-oai-sm bg-oai-ok-bg text-oai-ok">
+        No warnings
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-oai-sm bg-oai-alert-bg text-oai-alert">
+      {count} active warning{count !== 1 ? 's' : ''}
+    </span>
+  )
+}
+
 export function FloodRiskFragment({ flood, status }: Props) {
   if (status === 'not_implemented') {
     return (
-      <div className="max-w-[480px] bg-white border border-gray-200 rounded-lg p-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Flood</p>
-        <p className="text-sm text-gray-500">Flood data coming soon.</p>
+      <div className="max-w-[480px] bg-oai-surface border border-oai-line rounded-oai p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <DropletIcon className="w-4 h-4 text-oai-caption shrink-0" />
+          <h2 className="text-sm font-semibold text-oai-primary">Flood</h2>
+        </div>
+        <p className="text-sm text-oai-caption">Flood data coming soon.</p>
       </div>
     )
   }
 
   if (status !== 'available' || !flood) {
     return (
-      <div className="max-w-[480px] bg-white border border-gray-200 rounded-lg p-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Flood</p>
-        <p className="text-sm text-gray-500">Flood data temporarily unavailable.</p>
+      <div className="max-w-[480px] bg-oai-surface border border-oai-line rounded-oai p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <DropletIcon className="w-4 h-4 text-oai-caption shrink-0" />
+          <h2 className="text-sm font-semibold text-oai-primary">Flood</h2>
+        </div>
+        <p className="text-sm text-oai-caption">Flood data temporarily unavailable.</p>
       </div>
     )
   }
 
-  const { summary, current_warnings, nearest_stations, source, caveats } = flood
+  const { postcode, summary, current_warnings, nearest_stations, source, caveats } = flood
   const nearestStation = nearest_stations[0] ?? null
-  const warningCount = current_warnings.length
 
   return (
-    <div className="max-w-[480px] bg-white border border-gray-200 rounded-lg p-4 space-y-3">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Flood</p>
+    <div className="max-w-[480px] bg-oai-surface border border-oai-line rounded-oai p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <DropletIcon className="w-4 h-4 text-oai-caption shrink-0" />
+        <h2 className="text-sm font-semibold text-oai-primary">Flood risk — {postcode}</h2>
+      </div>
 
-      {summary && <p className="text-sm text-gray-700">{summary}</p>}
+      <WarningBadge count={current_warnings.length} />
 
-      <p className="text-sm text-gray-700">
-        <span className="font-semibold text-gray-900 text-base">{warningCount}</span>
-        {' '}active warning{warningCount !== 1 ? 's' : ''}
-      </p>
+      {summary && <p className="text-sm text-oai-secondary">{summary}</p>}
 
       {nearestStation && (
-        <div className="text-sm text-gray-700">
-          <p className="text-xs font-medium text-gray-500 mb-1">Nearest monitoring station</p>
-          <p className="font-medium text-gray-800">{nearestStation.label}</p>
-          <div className="flex gap-4 mt-0.5 text-xs text-gray-500">
+        <div className="text-sm">
+          <p className="text-xs font-medium text-oai-caption mb-1">Nearest monitoring station</p>
+          <p className="font-medium text-oai-primary">{nearestStation.label}</p>
+          <div className="flex gap-4 mt-0.5 text-xs text-oai-caption">
             {nearestStation.distance_km !== null && (
               <span>{nearestStation.distance_km.toFixed(1)} km away</span>
             )}
@@ -54,29 +76,7 @@ export function FloodRiskFragment({ flood, status }: Props) {
         </div>
       )}
 
-      <a
-        href="https://environment.data.gov.uk/flood-monitoring/id/floods"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-block text-xs text-blue-600 hover:underline"
-      >
-        View official flood warnings
-      </a>
-
-      {caveats.length > 0 && (
-        <details className="group">
-          <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 select-none">
-            Data notes ({caveats.length})
-          </summary>
-          <ul className="mt-1 space-y-0.5">
-            {caveats.map((c, i) => (
-              <li key={i} className="text-xs text-gray-400">{c}</li>
-            ))}
-          </ul>
-        </details>
-      )}
-
-      <p className="text-xs text-gray-400">Source: {source}</p>
+      <WidgetCaveatFooter caveats={caveats} source={source} />
     </div>
   )
 }

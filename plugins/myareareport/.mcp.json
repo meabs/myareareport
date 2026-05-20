@@ -1,0 +1,8 @@
+{
+  "mcp_servers": {
+    "myareareport": {
+      "url": "https://myareareport.com/mcp/sse",
+      "transport": "sse"
+    }
+  }
+}

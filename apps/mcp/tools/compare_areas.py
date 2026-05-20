@@ -68,27 +68,33 @@ async def compare_areas(postcode_a: str, postcode_b: str, api_base_url: str) -> 
     planning_a_data = _safe_get(report_a, "sections", "planning", "data")
     planning_b_data = _safe_get(report_b, "sections", "planning", "data")
 
+    crime_a_total = _safe_get(crime_a_data, "total_incidents") if crime_a_data else None
+    crime_b_total = _safe_get(crime_b_data, "total_incidents") if crime_b_data else None
+    flood_a_warnings = (
+        len(_safe_get(flood_a_data, "current_warnings", default=[])) if flood_a_data else None
+    )
+    flood_b_warnings = (
+        len(_safe_get(flood_b_data, "current_warnings", default=[])) if flood_b_data else None
+    )
+
+    crime_delta: int | None = None
+    if crime_a_total is not None and crime_b_total is not None:
+        crime_delta = crime_b_total - crime_a_total
+
     return {
         "area_a": _safe_get(report_a, "area", "data"),
         "area_b": _safe_get(report_b, "area", "data"),
         "comparison": {
             "crime": {
-                "area_a_total": _safe_get(crime_a_data, "total_incidents") if crime_a_data else None,
-                "area_b_total": _safe_get(crime_b_data, "total_incidents") if crime_b_data else None,
+                "area_a_total": crime_a_total,
+                "area_b_total": crime_b_total,
+                "incident_delta_b_minus_a": crime_delta,
                 "area_a_summary": _safe_get(report_a, "sections", "crime", "summary"),
                 "area_b_summary": _safe_get(report_b, "sections", "crime", "summary"),
             },
             "flood": {
-                "area_a_warnings": (
-                    len(_safe_get(flood_a_data, "current_warnings", default=[]))
-                    if flood_a_data
-                    else None
-                ),
-                "area_b_warnings": (
-                    len(_safe_get(flood_b_data, "current_warnings", default=[]))
-                    if flood_b_data
-                    else None
-                ),
+                "area_a_warnings": flood_a_warnings,
+                "area_b_warnings": flood_b_warnings,
             },
             "planning": {
                 "area_a_count": _safe_get(planning_a_data, "application_count") if planning_a_data else None,

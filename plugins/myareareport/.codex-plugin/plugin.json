@@ -1,0 +1,50 @@
+{
+  "name": "myareareport",
+  "version": "0.2.0",
+  "description": "UK area reports using public data: crime, flood, planning, house prices, and air quality.",
+  "license": "MIT",
+  "keywords": ["uk", "postcode", "crime", "flood", "planning", "house-prices", "chatgpt"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "MyAreaReport",
+    "shortDescription": "UK area reports from public data — crime, flood, planning and more.",
+    "longDescription": "MyAreaReport provides structured UK area reports using public datasets, including reported crime, flood warnings, planning applications, sold house prices, and air quality readings. It helps users understand local public information for any UK postcode. It does not provide emergency advice, property valuations, crime prediction, or safety rankings.",
+    "developerName": "MyAreaReport",
+    "category": "Reference",
+    "websiteURL": "https://myareareport.com",
+    "privacyPolicyURL": "https://myareareport.com/privacy",
+    "termsOfServiceURL": "https://myareareport.com/terms",
+    "composerIcon": "../assets/icon.png",
+    "logo": "../assets/logo.png",
+    "screenshots": [
+      {
+        "path": "../assets/screenshot-briefing.png",
+        "alt": "Area briefing card for CH1 4AB showing crime incidents, flood warnings, and planning applications in a single scannable card"
+      },
+      {
+        "path": "../assets/screenshot-crime.png",
+        "alt": "Crime statistics widget showing 183 reported incidents over 12 months with top categories"
+      },
+      {
+        "path": "../assets/screenshot-compare.png",
+        "alt": "Postcode comparison card showing CH1 4AB alongside M1 1AA with crime and flood data side by side"
+      },
+      {
+        "path": "../assets/screenshot-planning.png",
+        "alt": "Planning applications widget near CH1 4AB listing 3 applications with status badges and distances"
+      }
+    ],
+    "defaultPrompt": [
+      "Give me an area briefing for CH1 4AB",
+      "Compare crime and flood data for CH1 4AB and M1 1AE — I'm moving house",
+      "Are there any flood warnings near YO1 9QN?",
+      "Show planning applications within 2 km of E1 6RF",
+      "Compare crime for CH1 4AB, M1 1AE, and BS1 4DJ for my viewing shortlist",
+      "Explain how stop and search data is collected",
+      "What does the crime data for SW1A 1AA mean?"
+    ],
+    "brandColor": "#2563EB"
+  }
+}

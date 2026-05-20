@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400">
+  <!-- Background -->
+  <rect width="1280" height="400" rx="24" fill="#2563EB"/>
+  <!-- Map pin icon -->
+  <path fill="#ffffff" d="M120 200c0-44.2 35.8-80 80-80s80 35.8 80 80c0 60-80 120-80 120s-80-60-80-120zm54 0c0 14.4 11.6 26 26 26s26-11.6 26-26-11.6-26-26-26-26 11.6-26 26z"/>
+  <!-- Wordmark -->
+  <text
+    x="320" y="230"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
+    font-size="96"
+    font-weight="700"
+    fill="#ffffff"
+    letter-spacing="-2"
+  >MyAreaReport</text>
+  <!-- Tagline -->
+  <text
+    x="322" y="300"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
+    font-size="40"
+    font-weight="400"
+    fill="rgba(255,255,255,0.75)"
+  >UK area reports from public data</text>
+</svg>

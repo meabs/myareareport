@@ -5,10 +5,12 @@ from fastapi import FastAPI
 from app.config import settings
 from app.logging_config import configure_logging
 from app.observability import init_sentry
+from app.routers.air_quality import router as air_quality_router
 from app.routers.area import router as area_router
 from app.routers.crime import router as crime_router
 from app.routers.flood import router as flood_router
 from app.routers.health import router as health_router
+from app.routers.house_prices import router as house_prices_router
 from app.routers.planning import router as planning_router
 from app.routers.report import router as report_router
 from app.routers.stop_search import router as stop_search_router
@@ -42,6 +44,8 @@ app.include_router(flood_router)
 app.include_router(planning_router)
 app.include_router(report_router)
 app.include_router(stop_search_router)
+app.include_router(house_prices_router)
+app.include_router(air_quality_router)
 
 
 if settings.app_env == "development":

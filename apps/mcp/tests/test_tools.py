@@ -306,7 +306,7 @@ REPORT_B = {
     "sections": {
         "crime": {
             "status": "available",
-            "summary": "High crime.",
+            "summary": "Reported incidents increased over the selected period.",
             "data": {"total_incidents": 320, "top_categories": [], "monthly_trend": []},
         },
         "flood": {
@@ -353,6 +353,7 @@ async def test_compare_areas_success():
     assert result["area_b"]["postcode"] == "M11AE"
     assert result["comparison"]["crime"]["area_a_total"] == 150
     assert result["comparison"]["crime"]["area_b_total"] == 320
+    assert result["comparison"]["crime"]["incident_delta_b_minus_a"] == 170
     assert result["comparison"]["flood"]["area_a_warnings"] == 0
     assert result["comparison"]["flood"]["area_b_warnings"] == 1
     assert result["comparison"]["planning"]["area_a_count"] == 5
@@ -411,3 +412,99 @@ async def test_compare_areas_404_postcode_b():
 
     assert "error" in result
     assert "BADPC" in result["error"]
+
+
+# ---------------------------------------------------------------------------
+# briefing_for_postcode
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_briefing_for_postcode_success():
+    from tools.briefing import briefing_for_postcode
+
+    mock_cm = _make_async_client(_make_response(200, REPORT_A))
+    with patch("tools.briefing.httpx.AsyncClient", return_value=mock_cm):
+        result = await briefing_for_postcode("SW1A 1AA", API_URL)
+
+    assert result["postcode"] == "SW1A1AA"
+    assert result["area"]["postcode"] == "SW1A1AA"
+    assert result["crime"]["status"] == "available"
+    assert "error" not in result
+
+
+# ---------------------------------------------------------------------------
+# get_stop_search_stats
+# ---------------------------------------------------------------------------
+
+STOP_SEARCH_PAYLOAD = {
+    "postcode": "SW1A1AA",
+    "period_months": 3,
+    "total": 2,
+    "records": [],
+    "source": "police.uk",
+    "caveats": ["Example caveat."],
+}
+
+
+@pytest.mark.asyncio
+async def test_get_stop_search_stats_success():
+    from tools.stop_search import get_stop_search_stats
+
+    mock_cm = _make_async_client(_make_response(200, STOP_SEARCH_PAYLOAD))
+    with patch("tools.stop_search.httpx.AsyncClient", return_value=mock_cm):
+        result = await get_stop_search_stats("SW1A1AA", 3, API_URL)
+
+    assert result["total"] == 2
+    assert "error" not in result
+
+
+# ---------------------------------------------------------------------------
+# compare_postcodes_list
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_compare_postcodes_list_success():
+    from tools.compare_list import compare_postcodes_list
+
+    responses = [_make_response(200, REPORT_A), _make_response(200, REPORT_B)]
+    call_count = 0
+
+    async def mock_get(url, **kwargs):
+        nonlocal call_count
+        resp = responses[min(call_count, len(responses) - 1)]
+        call_count += 1
+        return resp
+
+    client = MagicMock()
+    client.get = mock_get
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=client)
+    cm.__aexit__ = AsyncMock(return_value=False)
+
+    with patch("tools.compare_list.httpx.AsyncClient", return_value=cm):
+        result = await compare_postcodes_list(["SW1A1AA", "M11AE"], API_URL)
+
+    assert len(result["items"]) == 2
+    assert result["items"][0]["total_incidents"] == 150
+
+
+# ---------------------------------------------------------------------------
+# explain_dataset
+# ---------------------------------------------------------------------------
+
+
+def test_explain_dataset_crime():
+    from tools.explain_dataset import explain_dataset
+
+    result = explain_dataset("crime")
+    assert result["topic"] == "crime"
+    assert "police.uk" in result["source_url"]
+
+
+def test_explain_dataset_invalid():
+    from tools.explain_dataset import explain_dataset
+
+    result = explain_dataset("unknown")
+    assert "error" in result

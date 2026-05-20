@@ -12,6 +12,9 @@ import { CrimeTrendFragment } from '@/components/fragments/CrimeTrendFragment'
 import { FloodRiskFragment } from '@/components/fragments/FloodRiskFragment'
 import { PlanningApplicationsFragment } from '@/components/fragments/PlanningApplicationsFragment'
 import { AreaComparisonFragment } from '@/components/fragments/AreaComparisonFragment'
+import { AreaBriefingFragment } from '@/components/fragments/AreaBriefingFragment'
+import { PostcodeCarouselFragment } from '@/components/fragments/PostcodeCarouselFragment'
+import { StopSearchFragment } from '@/components/fragments/StopSearchFragment'
 
 function FragmentSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -35,6 +38,54 @@ export default function DemoPage() {
             ← Home
           </Link>
         </div>
+
+        <FragmentSection label="Area briefing (ChatGPT scenario)">
+          <AreaBriefingFragment
+            area={fixtureArea}
+            crime={{ status: 'available', summary: fixtureCrimeSummary.summary, data: fixtureCrimeSummary }}
+            flood={{ status: 'available', summary: fixtureFloodRisk.summary, data: fixtureFloodRisk }}
+            planning={{ status: 'available', summary: fixturePlanningSummary.summary, data: fixturePlanningSummary }}
+          />
+        </FragmentSection>
+
+        <FragmentSection label="Postcode carousel (shortlist)">
+          <PostcodeCarouselFragment
+            items={[
+              {
+                postcode: fixtureArea.postcode,
+                admin_district: fixtureArea.admin_district,
+                region: fixtureArea.region,
+                total_incidents: fixtureCrimeSummary.total_incidents,
+                crime_summary: fixtureCrimeSummary.summary,
+                flood_warnings: fixtureFloodRisk.current_warnings.length,
+                planning_count: fixturePlanningSummary.application_count,
+              },
+              {
+                postcode: fixtureAreaB.postcode,
+                admin_district: fixtureAreaB.admin_district,
+                region: fixtureAreaB.region,
+                total_incidents: fixtureCrimeSummaryB.total_incidents,
+                crime_summary: fixtureCrimeSummaryB.summary,
+                flood_warnings: 0,
+                planning_count: null,
+              },
+            ]}
+          />
+        </FragmentSection>
+
+        <FragmentSection label="Stop and search">
+          <StopSearchFragment
+            data={{
+              postcode: fixtureArea.postcode,
+              period_months: 3,
+              total: 12,
+              records: [],
+              source: 'police.uk',
+              caveats: ['Fixture data only.'],
+            }}
+            status="available"
+          />
+        </FragmentSection>
 
         <FragmentSection label="Inline Area Summary">
           <InlineAreaSummary area={fixtureArea} status="available" />

@@ -8,7 +8,7 @@ from app.models.planning import PlanningApplication
 logger = logging.getLogger(__name__)
 
 TIMEOUT = 10.0
-BASE_URL = "https://www.planning.data.gov.uk/api/entity.json"
+BASE_URL = "https://www.planning.data.gov.uk/entity.json"
 
 
 class PlanningProviderTimeoutError(Exception):
@@ -25,8 +25,10 @@ class PlanningDataGovUkProvider:
     ) -> list[PlanningApplication]:
         url = BASE_URL
         params = {
-            "dataset": "development-policy",
-            "point": f"POINT({lng} {lat})",
+            "dataset": "planning-application",
+            "geometry_relation": "intersects",
+            "latitude": str(lat),
+            "longitude": str(lng),
             "entries": "current",
             "limit": "25",
         }

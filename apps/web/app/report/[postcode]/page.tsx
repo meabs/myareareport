@@ -1,8 +1,10 @@
 import Link from 'next/link'
-import { getReport } from '@/lib/api'
+import { getReport, getCrimeIncidents, getStopSearch } from '@/lib/api'
+import AirQualityCard from '@/components/AirQualityCard'
 import AreaSummaryCard from '@/components/AreaSummaryCard'
 import CrimeTrendCard from '@/components/CrimeTrendCard'
 import FloodRiskCard from '@/components/FloodRiskCard'
+import HousePricesCard from '@/components/HousePricesCard'
 import MapWrapper from '@/components/MapWrapper'
 import PlanningApplicationsCard from '@/components/PlanningApplicationsCard'
 import SourceCaveatFooter from '@/components/SourceCaveatFooter'
@@ -28,7 +30,11 @@ function formatDate(iso: string): string {
 
 export default async function ReportPage({ params }: Props) {
   const { postcode } = await params
-  const report = await getReport(postcode)
+  const [report, crimeIncidents, stopSearch] = await Promise.all([
+    getReport(postcode),
+    getCrimeIncidents(postcode, 3),
+    getStopSearch(postcode, 3),
+  ])
 
   if (!report) {
     return (
@@ -75,8 +81,12 @@ export default async function ReportPage({ params }: Props) {
               postcode={report.postcode}
               lat={report.area.data.latitude}
               lng={report.area.data.longitude}
+              initialIncidents={crimeIncidents?.incidents ?? []}
+              initialStopSearches={stopSearch?.records ?? []}
             />
           )}
+          <HousePricesCard housePrices={report.sections.house_prices} />
+          <AirQualityCard airQuality={report.sections.air_quality} />
           <CrimeTrendCard crime={report.sections.crime} />
           <FloodRiskCard flood={report.sections.flood} />
           <PlanningApplicationsCard planning={report.sections.planning} />

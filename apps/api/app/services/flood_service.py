@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from app.cache.redis_cache import get_cached, set_cached
@@ -48,18 +49,22 @@ class FloodService:
             logger.debug("Cache hit for %s", cache_key)
             return FloodRiskSummary.model_validate(cached)
 
-        warnings = await self._provider.get_flood_warnings(area.latitude, area.longitude)
-        stations = await self._provider.get_flood_stations(area.latitude, area.longitude)
+        warnings, stations, rainfall_gauges = await asyncio.gather(
+            self._provider.get_flood_warnings(area.latitude, area.longitude),
+            self._provider.get_flood_stations(area.latitude, area.longitude),
+            self._provider.get_rainfall_gauges(area.latitude, area.longitude),
+        )
 
         summary_obj = FloodRiskSummary(
             postcode=normalised,
             current_warnings=warnings,
             nearest_stations=stations,
+            rainfall_gauges=rainfall_gauges,
             summary="",  # filled in below
             caveats=CAVEATS,
         )
         summary_obj.summary = flood_summary_engine.generate(summary_obj)
 
-        await set_cached(cache_key, summary_obj.model_dump(), CACHE_TTL)
+        await set_cached(cache_key, summary_obj.model_dump(mode="json"), CACHE_TTL)
 
         return summary_obj

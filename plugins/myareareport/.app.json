@@ -1,0 +1,10 @@
+{
+  "apps": {
+    "myareareport": {
+      "name": "MyAreaReport",
+      "description": "UK postcode area reports from public data (crime, flood, planning).",
+      "mcp_server": "myareareport",
+      "widget_base_url": "https://myareareport.com/widgets"
+    }
+  }
+}

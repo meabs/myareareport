@@ -1,8 +1,21 @@
-:80 {
+{$DOMAIN} {
+    # Caddy automatically provisions a Let's Encrypt TLS certificate
+    # for {$DOMAIN} — no manual cert management needed.
+
+    # REST API
     handle /api/* {
         uri strip_prefix /api
         reverse_proxy api:8000
     }
+
+    # MCP server (SSE transport)
+    # Public MCP endpoint: https://{domain}/mcp/sse
+    handle /mcp/* {
+        uri strip_prefix /mcp
+        reverse_proxy mcp:8001
+    }
+
+    # Next.js web app
     handle {
         reverse_proxy web:3000
     }

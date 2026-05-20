@@ -50,6 +50,7 @@ export const fixtureFloodRisk: FloodRiskSummary = {
   nearest_stations: [
     { label: "River Dee at Chester", distance_km: 1.8, latest_level_m: 2.1, timestamp: "2026-05-17T10:30:00Z" },
   ],
+  rainfall_gauges: [],
   summary: "No current flood warnings were found near this postcode.",
   source: "Environment Agency",
   caveats: [

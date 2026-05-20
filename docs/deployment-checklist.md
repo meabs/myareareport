@@ -25,6 +25,14 @@
 - [ ] environment.data.gov.uk reachable from production
 - [ ] planning.data.gov.uk reachable from production
 
+## MCP / ChatGPT
+
+- [ ] WIDGET_BASE_URL set to production web origin
+- [ ] MCP_PUBLIC_URL set (e.g. https://domain/mcp for SSE via Caddy)
+- [ ] Plugin manifest privacy/terms URLs updated
+- [ ] GET widget smoke: `/widgets/briefing?postcode=CH14AB`
+- [ ] MCP tool smoke: `briefing_for_postcode` returns widget_url
+
 ## Smoke Tests
 - [ ] GET / returns 200
 - [ ] GET /health returns status ok

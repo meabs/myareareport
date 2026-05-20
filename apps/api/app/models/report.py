@@ -3,9 +3,11 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
+from app.models.air_quality import AirQualitySummary
 from app.models.area import Area
 from app.models.crime import CrimeSummary
 from app.models.flood import FloodRiskSummary
+from app.models.house_prices import HousePricesSummary
 from app.models.planning import PlanningSummary
 
 
@@ -51,10 +53,24 @@ class PlanningSection(BaseModel):
     data: PlanningSummary | None
 
 
+class HousePricesSection(BaseModel):
+    status: SectionStatus
+    summary: str | None
+    data: HousePricesSummary | None
+
+
+class AirQualitySection(BaseModel):
+    status: SectionStatus
+    summary: str | None
+    data: AirQualitySummary | None
+
+
 class ReportSections(BaseModel):
     crime: CrimeSection
     flood: FloodSection
     planning: PlanningSection
+    house_prices: HousePricesSection
+    air_quality: AirQualitySection
 
 
 class Report(BaseModel):

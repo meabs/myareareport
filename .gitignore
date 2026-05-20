@@ -43,3 +43,9 @@ Thumbs.db
 node_modules/
 .next/
 .npm/
+*.tsbuildinfo
+
+# Runtime / generated
+screenshots/
+.agents/
+apps/mcp/tools/__pycache__/

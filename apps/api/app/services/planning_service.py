@@ -51,26 +51,13 @@ class PlanningService:
             logger.debug("Cache hit for %s", cache_key)
             return PlanningSummary.model_validate(cached)
 
-        # Try live provider; fall back to mock on any failure or empty result
         applications = []
         try:
             applications = await self._provider.get_applications(
                 area.latitude, area.longitude, radius_km
             )
         except Exception:
-            logger.warning(
-                "PlanningDataGovUkProvider failed for %s; falling back to mock",
-                normalised,
-            )
-
-        if not applications:
-            logger.debug(
-                "Live provider returned no results for %s; using mock provider",
-                normalised,
-            )
-            applications = await self._mock_provider.get_applications(
-                area.latitude, area.longitude, radius_km
-            )
+            logger.warning("PlanningDataGovUkProvider failed for %s", normalised)
 
         summary_obj = PlanningSummary(
             postcode=normalised,

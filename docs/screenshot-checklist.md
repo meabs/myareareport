@@ -13,6 +13,16 @@ Before submission, capture:
 - [ ] API docs page (http://localhost:8000/docs)
 - [ ] Fragment demo page (http://localhost:3000/demo)
 
+## ChatGPT inline (App Store)
+
+See [chatgpt-demo-script.md](./chatgpt-demo-script.md). Save under `screenshots/chatgpt/`:
+
+- [ ] Briefing widget — CH1 4AB
+- [ ] Compare two postcodes
+- [ ] Compare-list carousel (3 postcodes)
+- [ ] Flood warnings card
+- [ ] Stop and search card (optional)
+
 ## Naming Convention
 screenshots/{page}-{viewport}.png
 e.g. screenshots/homepage-desktop.png
