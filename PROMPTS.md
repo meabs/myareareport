@@ -1,171 +1,134 @@
-# Demo Prompts — Blackwell Bank MCP App
+# MyAreaReport — Demo Runbook
 
-Use these prompts with any AI assistant connected to `https://garry-demo.meaburn.com/mcp` (HTTP) or configured for stdio (Claude Desktop). Prompts don't need to be exact — the model matches intent.
+UK Area Intelligence MCP App — real crime & flood data from UK government APIs.
 
----
-
-## Scenario 1 — Full Sales UI
-
-Opens the complete panel: card catalogue on the left, card detail on the right, eligibility form and application stepper below.
-
-**Prompt to open:**
-> Show me Blackwell Bank credit cards
-
-**Variations:**
-> What credit cards does Blackwell Bank offer?
-
-> I'm looking for a new credit card — what does Blackwell Bank have?
-
-> Can you show me Blackwell Bank's card products?
-
-**What to do next in the UI:**
-- Click between cards in the left column to switch the detail view (card selection is an app-only tool — the model never sees it)
-- Fill in the eligibility form (credit band, income, employment status) and click **Check your eligibility**
-- Click **Continue to application** after the eligibility result appears
-- Work through the 5-step application form and submit — the model receives a notification when done
-- Click **⤢** (top-right of any panel) to expand to fullscreen
+**Server URL**
+- Local: `http://localhost:3001/mcp`
+- Production: `https://myareareport.com/mcp`
 
 ---
 
-## Scenario 2 — Card Detail Fragment
+## Setup
 
-Opens a focused single-card spotlight with features, APR, and a CTA. No navigation chrome.
+```bash
+npm install
+npm run build
+npm start          # or npm run start:cloud for public tunnel
+```
 
-**Prompt:**
-> Tell me about the Blackwell Rewards Card
+Connect to Claude Desktop / Claude.ai / ChatGPT via the MCP server URL above.
 
-**Variations:**
-> What are the benefits of the Blackwell Rewards Card?
-
-> Show me the Blackwell Cashback Card details
-
-> I want to see the features of the Blackwell Rewards Card
-
-> What's the APR on the Blackwell Cashback Card?
-
-**What to do next in the UI:**
-- Click **Check your eligibility** to trigger the eligibility tool from inside the fragment
+Press **`Shift + D`** inside the panel to enable presenter mode (toolbar + model context inspector).
 
 ---
 
-## Scenario 3 — Eligibility Widget Fragment
+## Demo prompts
 
-Runs a soft eligibility check and shows the pre-qualification result — green success box, credit limit, and APR stats.
+### Area overview
 
-**Prompt:**
-> Check if I'm eligible for the Blackwell Cashback Card
+- *"Show me an area report for Westminster — SW1A 2AA"*
+- *"What's going on in Leeds? LS1 1BA"*
+- *"Area intelligence for York YO1 9RD"*
+- *"Give me a full report for Bristol BS1 4ST"*
+- *"What's it like in Chester?"* ← accepts place names too
 
-**Variations:**
-> Am I likely to be approved for a Blackwell Bank card?
+### Crime deep dive
 
-> Can you do an eligibility check for the Rewards Card?
+- *"What are the crime statistics for SW1A 2AA?"*
+- *"Show me the detailed crime breakdown for Westminster"*
+- *"What's the stop and search data for Leeds LS1 1BA?"*
 
-> I want to see if I'd qualify for the Blackwell Cashback Card
+### Flood risk
 
-> Check my eligibility — I earn £35,000 and have good credit
+- *"What's the flood risk near York?"*
+- *"Are there any flood warnings near BS1 4ST?"*
+- *"Show me river monitoring data for Leeds"*
 
-**What to do next in the UI:**
-- Click **Continue to application** to switch to the application stepper
+### House prices
 
----
+- *"What are house prices like in Leeds?"*
+- *"Show me property prices near Westminster"*
+- *"What does a terraced house cost in York YO1?"*
 
-## Scenario 4 — Application Stepper Fragment
+### Road traffic
 
-Launches the 5-step application form: Personal details → Address → Employment → Review → Decision.
+- *"What's the traffic like on roads near Leeds?"*
+- *"Show me motorway traffic data near Bristol BS1 4ST"*
+- *"How busy is the M62 near Leeds?"*
 
-**Prompt:**
-> Apply for the Blackwell Rewards Card
+### Follow-up prompts (after panel renders)
 
-**Variations:**
-> I'd like to apply for the Blackwell Cashback Card
-
-> Start a credit card application for the Rewards Card
-
-> Begin my application for a Blackwell Bank card
-
-> I want to apply — I'm an existing customer
-
-**What to do next in the UI:**
-- Fill in the form fields and click **Continue** to progress through steps
-- Click **Save and exit** to bail out without submitting
-- On the final step, submit — a confirmation screen with animated check appears and the model is notified
-
----
-
-## Multi-turn conversation flows
-
-These show how to chain scenarios naturally in a single conversation.
-
-### Flow A — discovery to application
-
-> Show me Blackwell Bank credit cards
-
-*(Browse the catalogue, click cards to compare)*
-
-> Tell me more about the cashback option
-
-> What would my eligibility look like with a £28,000 salary and fair credit?
-
-> OK let's apply for the cashback card
+- *"Which crime category is highest?"*
+- *"Is that above or below average for the UK?"*
+- *"Are there any active flood warnings?"*
+- *"How does this area compare to a national average?"*
+- *"What's the average house price here?"*
+- *"How busy are the nearby motorways?"*
 
 ---
 
-### Flow B — targeted eligibility then apply
+## What data is shown
 
-> I earn £45,000 a year, good credit score — which Blackwell Bank card would suit me?
-
-> Check my eligibility for the Rewards Card
-
-> Great, let's start the application
-
----
-
-### Flow C — existing customer journey
-
-> I'm already a Blackwell Bank customer — what new cards can I get?
-
-> Show me the Rewards Card details
-
-> Apply for it — I'm an existing customer
+| Panel | Data | Source |
+|-------|------|--------|
+| Crime categories | Street-level crimes by type, monthly | Police UK API |
+| Crime trend | 3-month comparison chart | Police UK API |
+| Stop & search | Recorded instances + reasons | Police UK API |
+| Flood warnings | Active warnings & alerts by county | Environment Agency |
+| Flood stations | Nearest river monitoring stations + readings | Environment Agency |
+| House prices | Recent sales, avg/median by property type | Land Registry PPD |
+| Road traffic | Nearby motorway/A-road sensor avg daily flow, HGV % | National Highways WebTRIS |
+| Map | OSM base tiles, crime density markers, station pins | OpenStreetMap / EA |
 
 ---
 
-### Flow D — fragment-first then expand
+## Demo mode toolbar
 
-> What's the APR on the Blackwell Rewards Card?
-
-*(Card detail fragment appears)*
-
-> Run an eligibility check for that card
-
-*(Eligibility widget appears)*
-
-> Now show me everything — the full card comparison
-
-*(Full UI opens)*
+| Button | Action |
+|--------|--------|
+| **Westminster** | Load SW1A 2AA (high crime, London) |
+| **Leeds** | Load LS1 1BA (city centre, Yorkshire) |
+| **Crime tab** | Open crime detail for current area |
+| **Flood tab** | Open flood detail for current area |
+| **Reset** | Return to search |
 
 ---
 
-## Things to click during a live demo
+## MCP Tools
 
-| Action | Where | What it shows |
-|---|---|---|
-| Switch cards | Card list (left column, full view) | App-only tool — model never involved |
-| Check eligibility | Eligibility form (bottom-left, full view) | Green result box with credit limit |
-| Continue to application | Eligibility result CTA | Switches to stepper |
-| Save and exit | Form footer (left link) | Exits without submitting |
-| Continue | Form footer (right button) | Steps through the form |
-| Submit application | Final review step | Confirmation + sparkle animation + model notified |
-| ⤢ Expand | Top-right of any panel | Fullscreen mode |
+| Tool | Visible to | Description |
+|------|-----------|-------------|
+| `area-search` | LLM | Full area dashboard (crime + flood + map) |
+| `area-crime` | LLM | Detailed 3-month crime analysis |
+| `area-flood` | LLM | Flood warnings + river monitoring |
+| `area-property` | LLM | House prices from Land Registry |
+| `area-roads` | LLM | Road traffic from National Highways WebTRIS |
+| `area-app-search` | App only | Frontend search form (accepts postcode or place name) |
+| `area-app-crime` | App only | Crime tab navigation |
+| `area-app-flood` | App only | Flood tab navigation |
+| `area-app-property` | App only | Property tab navigation |
+| `area-app-roads` | App only | Roads tab navigation |
 
 ---
 
-## Tips for a live audience demo
+## Data notes
 
-- **Start with Scenario 1** — the full UI is the most impressive opening and gives a complete picture in one shot
-- **Switch cards during the live view** to show app-only tools: the model isn't called but the UI updates instantly
-- **Fill in the eligibility form** yourself during the demo — it shows the interactive UI working in real time
-- **Submit the application** to trigger the `sendMessage` call — the model will respond in the chat after the confirmation screen appears
-- **Use the expand button** to demonstrate `requestDisplayMode` — the panel goes fullscreen and back
-- **Show the fragment scenarios separately** (Scenarios 2–4) to demonstrate that the same server delivers both full UIs and targeted widgets depending on what the model asks for
-- **Switch between ChatGPT and Claude** using the same endpoint (`https://garry-demo.meaburn.com/mcp`) to show transport compatibility
+- **Crime data** is published monthly by police forces — typically 2 months in arrears.
+- **Flood data** is real-time from the Environment Agency monitoring API.
+- **House price data** is from the Land Registry Price Paid dataset — typically 4-8 weeks in arrears. Queried via SPARQL by outcode (postcode district).
+- **Traffic data** is from National Highways WebTRIS — monthly averages for motorway and A-road sensors. Some sites may not have data for the most recent month; the app falls back to 2 months prior automatically.
+- Crime locations are **anonymised** (snapped to nearest street node) per Police UK licence.
+- All data is licensed under the **Open Government Licence v3.0**.
+- **Place name search**: entering a place name (e.g. "Chester") resolves to the nearest representative postcode. Data accuracy is best with a full postcode.
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| Postcode not found | Use full postcode with space, e.g. `SW1A 2AA` not `SW1A2AA` |
+| Crime total is 0 | Police data lags ~2 months — app auto-selects latest available month |
+| Flood stations not shown | Some areas don't have EA monitoring stations within 12km |
+| Map tiles not loading | Check CSP — add `tile.openstreetmap.org` to `resourceDomains` |
+| Model context not updating | Host may not support `updateModelContext` — try Claude Desktop |

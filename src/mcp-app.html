@@ -4,90 +4,222 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light" />
-    <title>Blackwell Bank Card Services</title>
+    <title>MyAreaReport — UK Area Intelligence</title>
   </head>
   <body>
     <main id="app-root" class="app-shell">
 
+      <!-- Loading -->
       <div id="view-loading" class="view view-loading">
-        <div class="loading-logo">B</div>
-        <p class="loading-text">Blackwell Bank</p>
+        <div class="loading-icon">M</div>
+        <p class="loading-label">MyAreaReport</p>
+        <p class="loading-sub">Fetching area data…</p>
       </div>
 
-      <div id="view-full" class="view hidden">
-        <section class="layout-primary">
-          <aside class="card-list-panel">
-            <div class="card-list-header">
-              <h2>Recommended for you</h2>
+      <!-- Search fallback -->
+      <div id="view-search" class="view hidden">
+        <div class="search-panel">
+          <div class="search-brand">
+            <div class="brand-mark">M</div>
+            <div>
+              <h1 class="brand-title">MyAreaReport</h1>
+              <p class="brand-strapline">UK Area Intelligence</p>
             </div>
-            <div id="card-list-items"></div>
-            <div class="card-list-footer">
-              <button class="btn-compare" id="compare-btn">
-                Compare all cards <span aria-hidden="true">→</span>
-              </button>
-            </div>
-          </aside>
-
-          <article class="card-detail-panel">
-            <header class="card-detail-header">
-              <div class="brand-logo" aria-hidden="true">B</div>
-              <p class="brand-name">Blackwell Bank</p>
-              <button class="fullscreen-cta" id="expand-btn" aria-label="Expand to fullscreen">⤢</button>
-            </header>
-            <div class="card-detail-body" id="full-card-detail-body"></div>
-            <footer class="card-detail-footer">🔒 Secure &bull; Information you share is protected</footer>
-          </article>
-        </section>
-
-        <section id="full-journey-section" class="hidden">
-          <article class="eligibility-panel journey-panel">
-            <header class="panel-header">
-              <div class="brand-logo" aria-hidden="true">B</div>
-              <p class="brand-name" id="full-journey-title">Eligibility</p>
-            </header>
-            <div class="panel-body">
-              <div id="full-journey-progress" class="step-progress hidden"></div>
-              <div id="full-journey-body"></div>
-            </div>
-          </article>
-        </section>
-      </div>
-
-      <div id="view-card-detail" class="view hidden">
-        <article class="card-detail-panel fragment-panel">
-          <header class="card-detail-header">
-            <div class="brand-logo" aria-hidden="true">B</div>
-            <p class="brand-name">Blackwell Bank</p>
-            <span class="back-link">← All cards</span>
-          </header>
-          <div class="card-detail-body" id="fragment-card-detail-body"></div>
-          <footer class="card-detail-footer">🔒 Secure &bull; Information you share is protected</footer>
-        </article>
-      </div>
-
-      <div id="view-journey" class="view hidden">
-        <article class="card-detail-panel fragment-panel journey-panel">
-          <header class="card-detail-header">
-            <div class="brand-logo" aria-hidden="true">B</div>
-            <p class="brand-name">Blackwell Bank</p>
-            <span class="back-link" id="journey-back">← Back</span>
-          </header>
-          <div class="panel-body">
-            <p id="fragment-journey-title" class="journey-panel-title">Eligibility</p>
-            <div id="fragment-journey-progress" class="step-progress hidden"></div>
-            <div id="fragment-journey-body"></div>
           </div>
-          <footer class="card-detail-footer">🔒 Secure &bull; Information you share is protected</footer>
-        </article>
+          <p class="search-intro">
+            Enter a UK postcode to explore real crime statistics, flood risk data,
+            and area intelligence from official government sources.
+          </p>
+          <form id="search-form" class="search-form" autocomplete="off">
+            <div class="search-input-row">
+              <input id="search-input" type="text" class="search-input"
+                placeholder="e.g. SW1A 2AA, Leeds, Chester"
+                spellcheck="false" autocapitalize="words" />
+              <button type="submit" class="search-btn">Search</button>
+            </div>
+            <p id="search-error" class="search-error hidden"></p>
+            <p class="search-hint">
+              Try: <button type="button" class="hint-chip" data-postcode="SW1A 2AA">SW1A 2AA</button>
+              <button type="button" class="hint-chip" data-postcode="M1 1AE">M1 1AE</button>
+              <button type="button" class="hint-chip" data-postcode="YO1 9RD">YO1 9RD</button>
+              <button type="button" class="hint-chip" data-postcode="BS1 4ST">BS1 4ST</button>
+            </p>
+          </form>
+          <div class="source-badges">
+            <span class="source-badge">Police UK API</span>
+            <span class="source-badge">Environment Agency</span>
+            <span class="source-badge">Land Registry</span>
+            <span class="source-badge">National Highways</span>
+            <span class="source-badge">Open Government Licence</span>
+          </div>
+        </div>
       </div>
+
+      <!-- Main dashboard (full mode) -->
+      <div id="view-full" class="view hidden">
+        <header class="app-header">
+          <div class="header-brand">
+            <div class="brand-mark-sm">M</div>
+            <span class="header-app-name">MyAreaReport</span>
+          </div>
+          <div class="header-area" id="header-area">
+            <span class="header-postcode" id="header-postcode">—</span>
+            <span class="header-district" id="header-district"></span>
+          </div>
+          <div class="header-actions">
+            <button class="header-search-btn" id="new-search-btn" title="Search another area">⌕</button>
+            <button class="expand-btn" id="expand-btn" title="Expand to fullscreen">⤢</button>
+          </div>
+        </header>
+
+        <nav class="tab-nav" id="tab-nav" role="tablist">
+          <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+          <button class="tab-btn" data-tab="crime" role="tab" aria-selected="false">Crime</button>
+          <button class="tab-btn" data-tab="flood" role="tab" aria-selected="false">Flood</button>
+          <button class="tab-btn" data-tab="property" role="tab" aria-selected="false">Property</button>
+          <button class="tab-btn" data-tab="roads" role="tab" aria-selected="false">Roads</button>
+          <button class="tab-btn" data-tab="fuel" role="tab" aria-selected="false">Fuel</button>
+          <button class="tab-btn" data-tab="about" role="tab" aria-selected="false">Sources</button>
+        </nav>
+
+        <!-- Overview tab -->
+        <div id="tab-overview" class="tab-panel" role="tabpanel">
+          <div id="map-container" class="map-container" aria-label="Area map"></div>
+          <div class="map-legend" id="map-legend"></div>
+          <div class="stat-row" id="stat-row"></div>
+          <div class="section" id="overview-crime"></div>
+          <div class="section" id="overview-flood"></div>
+        </div>
+
+        <!-- Crime tab -->
+        <div id="tab-crime" class="tab-panel hidden" role="tabpanel">
+          <div id="crime-loading" class="tab-loading hidden">
+            <div class="spinner"></div><span>Loading crime data…</span>
+          </div>
+          <div id="crime-body"></div>
+        </div>
+
+        <!-- Flood tab -->
+        <div id="tab-flood" class="tab-panel hidden" role="tabpanel">
+          <div id="flood-loading" class="tab-loading hidden">
+            <div class="spinner"></div><span>Loading flood data…</span>
+          </div>
+          <div id="flood-body"></div>
+        </div>
+
+        <!-- Property tab -->
+        <div id="tab-property" class="tab-panel hidden" role="tabpanel">
+          <div id="property-loading" class="tab-loading hidden">
+            <div class="spinner"></div><span>Loading property data…</span>
+          </div>
+          <div id="property-body"></div>
+        </div>
+
+        <!-- Roads tab -->
+        <div id="tab-roads" class="tab-panel hidden" role="tabpanel">
+          <div id="roads-loading" class="tab-loading hidden">
+            <div class="spinner"></div><span>Loading traffic data…</span>
+          </div>
+          <div id="roads-body"></div>
+        </div>
+
+        <!-- Fuel tab -->
+        <div id="tab-fuel" class="tab-panel hidden" role="tabpanel">
+          <div id="fuel-loading" class="tab-loading hidden">
+            <div class="spinner"></div><span>Loading fuel prices…</span>
+          </div>
+          <div id="fuel-body"></div>
+        </div>
+
+        <!-- Sources tab -->
+        <div id="tab-about" class="tab-panel hidden" role="tabpanel">
+          <div class="about-panel">
+            <h2 class="about-title">Data sources</h2>
+            <div class="about-source">
+              <h3>Police UK Crime API</h3>
+              <p>Street-level crime and stop & search data published by police forces across England, Wales and Northern Ireland. Updated monthly. <a href="https://data.police.uk" target="_blank" rel="noopener">data.police.uk</a></p>
+            </div>
+            <div class="about-source">
+              <h3>Environment Agency Flood Monitoring</h3>
+              <p>Real-time flood warnings, alerts, and river level readings from monitoring stations across England. <a href="https://environment.data.gov.uk/flood-monitoring/doc/reference" target="_blank" rel="noopener">environment.data.gov.uk</a></p>
+            </div>
+            <div class="about-source">
+              <h3>Postcodes.io</h3>
+              <p>Open source UK postcode geocoding and lookup service. <a href="https://postcodes.io" target="_blank" rel="noopener">postcodes.io</a></p>
+            </div>
+            <div class="about-source">
+              <h3>HM Land Registry Price Paid Data</h3>
+              <p>Residential property sale prices in England and Wales, updated monthly. Queried via the Land Registry SPARQL endpoint. <a href="https://landregistry.data.gov.uk" target="_blank" rel="noopener">landregistry.data.gov.uk</a></p>
+            </div>
+            <div class="about-source">
+              <h3>National Highways WebTRIS</h3>
+              <p>Traffic flow monitoring data from motorway and A-road sensors managed by National Highways. Daily vehicle counts and HGV percentages. <a href="https://webtris.highwaysengland.co.uk" target="_blank" rel="noopener">webtris.highwaysengland.co.uk</a></p>
+            </div>
+            <div class="about-source">
+              <h3>GOV.UK Fuel Finder</h3>
+              <p>Live petrol and diesel prices from filling stations across the UK, published under the Motor Fuel Price (Open Data) Regulations 2025. <a href="https://www.developer.fuel-finder.service.gov.uk" target="_blank" rel="noopener">developer.fuel-finder.service.gov.uk</a></p>
+            </div>
+            <div class="about-source">
+              <h3>OpenStreetMap</h3>
+              <p>Map tiles © OpenStreetMap contributors, licensed under ODbL. <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">openstreetmap.org</a></p>
+            </div>
+            <p class="about-licence">All government data is published under the <strong>Open Government Licence v3.0</strong>. Crime data is anonymised and location-snapped to the nearest street node.</p>
+          </div>
+        </div>
+
+        <footer class="app-footer">
+          Data: Police UK · Environment Agency · Land Registry · Fuel Finder · Open Government Licence v3.0
+        </footer>
+      </div>
+
+      <!-- Crime fragment (standalone mode) -->
+      <div id="view-crime" class="view hidden">
+        <header class="app-header">
+          <div class="header-brand">
+            <div class="brand-mark-sm">M</div>
+            <span class="header-app-name">Crime Analysis</span>
+          </div>
+          <div class="header-area" id="crime-header-area"></div>
+          <button class="back-btn" data-nav="full">← Overview</button>
+        </header>
+        <div id="crime-fragment-map" class="map-container map-sm" aria-label="Crime map"></div>
+        <div id="crime-fragment-body" class="panel-body"></div>
+        <footer class="app-footer">Data: Police UK · Open Government Licence v3.0</footer>
+      </div>
+
+      <!-- Flood fragment (standalone mode) -->
+      <div id="view-flood" class="view hidden">
+        <header class="app-header">
+          <div class="header-brand">
+            <div class="brand-mark-sm">M</div>
+            <span class="header-app-name">Flood Risk</span>
+          </div>
+          <div class="header-area" id="flood-header-area"></div>
+          <button class="back-btn" data-nav="full">← Overview</button>
+        </header>
+        <div id="flood-fragment-map" class="map-container map-sm" aria-label="Flood stations map"></div>
+        <div id="flood-fragment-body" class="panel-body"></div>
+        <footer class="app-footer">Data: Environment Agency · Open Government Licence v3.0</footer>
+      </div>
+
+      <!-- Model context panel (demo) -->
+      <aside id="model-context-panel" class="model-context-panel hidden" aria-live="polite">
+        <header class="mc-header">
+          <strong>Model context</strong><span>Demo</span>
+        </header>
+        <pre id="model-context-pre" class="mc-pre">No context pushed yet.</pre>
+      </aside>
 
     </main>
 
-    <footer class="regulatory-footer">
-      Blackwell Bank is a trading name of Blackwell Bank plc. Registered in England and Wales (12345678).
-      Registered Office: 100 Queen Street, London, EC4N 1HQ. Authorised by the Prudential Regulation
-      Authority and regulated by the Financial Conduct Authority and the Prudential Regulation Authority.
-    </footer>
+    <!-- Demo toolbar -->
+    <nav id="demo-toolbar" class="demo-toolbar hidden" aria-label="Demo toolbar">
+      <button type="button" class="demo-btn" data-demo="westminster">Westminster</button>
+      <button type="button" class="demo-btn" data-demo="leeds">Leeds</button>
+      <button type="button" class="demo-btn" data-demo="crime">Crime tab</button>
+      <button type="button" class="demo-btn" data-demo="flood">Flood tab</button>
+      <button type="button" class="demo-btn demo-btn-reset" data-demo="reset">Reset</button>
+    </nav>
 
     <script type="module" src="/src/mcp-app.js"></script>
   </body>
