@@ -11,6 +11,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY src/ ./src/
+COPY logo.png ./logo.png
 ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001

@@ -95,7 +95,16 @@ function riskColor(level) {
 }
 
 function riskLabel(level) {
-  return { none: "No data", low: "Low risk", medium: "Medium risk", high: "High risk", "very-high": "Very high risk" }[level] || level;
+  return { none: "No active warnings", low: "Low", medium: "Medium", high: "High", "very-high": "Very high" }[level] || level;
+}
+
+function crimeAvgChip(crime) {
+  if (crime?.vsAvg == null) return '';
+  const pct = crime.vsAvg;
+  const sign = pct >= 0 ? '+' : '';
+  const cls = pct > 30 ? 'crime-above' : pct < -30 ? 'crime-below' : 'crime-near';
+  const label = pct > 30 ? 'above' : pct < -30 ? 'below' : 'near';
+  return `<span class="crime-avg-chip ${cls}" title="England &amp; Wales monthly average ≈ ${crime.nationalAvg || 30} incidents">${sign}${pct}% vs E&amp;W avg (${label})</span>`;
 }
 
 function fmtMonth(yyyymm) {
@@ -222,11 +231,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         <div class="stat-card-icon">🔎</div>
         <div class="stat-card-label">Total crimes</div>
         <div class="stat-card-value">${crime?.total ?? "—"}</div>
-        <div class="stat-card-sub">
-          <span class="risk-badge ${crime?.riskLevel ?? 'none'}">
-            <span class="risk-dot"></span>${riskLabel(crime?.riskLevel)}
-          </span>
-        </div>
+        <div class="stat-card-sub">${crimeAvgChip(crime)}</div>
       </div>
       <div class="stat-card" data-action="tab-flood" title="View flood details">
         <div class="stat-card-icon">🌊</div>
@@ -270,9 +275,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
         <h2 class="section-title">Crime by category</h2>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="month-badge">${fmtMonth(state.month)}</span>
-          <span class="risk-badge ${state.crime.riskLevel}">
-            <span class="risk-dot"></span>${riskLabel(state.crime.riskLevel)}
-          </span>
+          ${crimeAvgChip(state.crime)}
         </div>
       </div>
       <div class="section-body">
@@ -362,7 +365,7 @@ export function createFeatureViews({ state, app, callServerTool, notifyHostSize,
       <div class="section">
         <div class="section-header">
           <h2 class="section-title">Crime trend</h2>
-          <span class="risk-badge ${crime.riskLevel}"><span class="risk-dot"></span>${riskLabel(crime.riskLevel)}</span>
+          ${crimeAvgChip(crime)}
         </div>
         <div class="section-body">
           <div id="${bodyId}-trend" class="trend-chart"></div>

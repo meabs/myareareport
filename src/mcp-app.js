@@ -89,13 +89,15 @@ function pushModelContext(eventName, payload) {
     if (payload.month) lines.push(`Data month: ${payload.month}`);
   }
   if (payload?.crime) {
-    lines.push(`Crime: ${payload.crime.total} incidents (${payload.crime.riskLevel} risk)`);
+    const pct = payload.crime.vsAvg;
+    const vs = pct != null ? ` (${pct >= 0 ? '+' : ''}${pct}% vs E&W avg)` : '';
+    lines.push(`Crime: ${payload.crime.total} incidents${vs}`);
     if (payload.crime.categories?.length) {
       lines.push(`Top category: ${payload.crime.categories[0].label} (${payload.crime.categories[0].count})`);
     }
   }
   if (payload?.flood) {
-    lines.push(`Flood: ${payload.flood.warnings} warnings, ${payload.flood.alerts} alerts (${payload.flood.riskLevel} risk)`);
+    lines.push(`Flood: ${payload.flood.warnings} warnings, ${payload.flood.alerts} alerts`);
   }
   if (payload?.avgPrice) {
     lines.push(`Avg house price (${payload.outcode}): £${payload.avgPrice.toLocaleString('en-GB')}`);

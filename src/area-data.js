@@ -141,12 +141,12 @@ function categorizeCrimes(crimes) {
     .sort((a, b) => b.count - a.count);
 }
 
-function crimeRisk(total) {
-  if (total < 5) return 'low';
-  if (total < 30) return 'low';
-  if (total < 80) return 'medium';
-  if (total < 150) return 'high';
-  return 'very-high';
+// England & Wales monthly average for a 1-mile radius Police UK query (~6M crimes/yr ÷ 12 ÷ 16k areas)
+const NATIONAL_AVG_MONTHLY = 30;
+
+function crimeVsAvg(total) {
+  if (total === 0) return 0;
+  return Math.round(((total - NATIONAL_AVG_MONTHLY) / NATIONAL_AVG_MONTHLY) * 100);
 }
 
 function floodRisk(warnings, alerts) {
@@ -195,7 +195,8 @@ export async function getAreaReport(postcode) {
     month,
     crime: {
       total: crimes.length,
-      riskLevel: crimeRisk(crimes.length),
+      vsAvg: crimeVsAvg(crimes.length),
+      nationalAvg: NATIONAL_AVG_MONTHLY,
       categories: categories.slice(0, 10),
       stopSearch: stopSearch.length,
       markers: toMarkers(crimes),
@@ -257,7 +258,8 @@ export async function getCrimeDetail(postcode) {
     month: months[0],
     crime: {
       total: m0.length,
-      riskLevel: crimeRisk(m0.length),
+      vsAvg: crimeVsAvg(m0.length),
+      nationalAvg: NATIONAL_AVG_MONTHLY,
       categories: categorizeCrimes(m0),
       outcomes: Object.entries(outcomes)
         .map(([label, count]) => ({ label, count }))
@@ -648,7 +650,7 @@ export function formatToolResultText(kind, payload) {
     const { area, crime, flood, month } = payload;
     const lines = [
       `MyAreaReport — ${area.postcode} (${area.district}) · ${month}`,
-      `Crime: ${crime.total} incidents · ${crime.riskLevel} risk`,
+      `Crime: ${crime.total} incidents · ${crime.vsAvg >= 0 ? '+' : ''}${crime.vsAvg}% vs E&W avg`,
       `Flood: ${flood.warnings} warnings, ${flood.alerts} alerts`,
       `Top crimes: ${crime.categories.slice(0, 3).map(c => `${c.label} (${c.count})`).join(', ')}`,
     ];
@@ -666,7 +668,7 @@ export function formatToolResultText(kind, payload) {
   if (kind === 'area-flood') {
     const { area, flood } = payload;
     return [
-      `Flood risk — ${area.postcode}: ${flood.riskLevel}`,
+      `Flood status — ${area.postcode}: ${flood.warnings} warnings, ${flood.alerts} alerts`,
       `${flood.warnings} warnings · ${flood.alerts} alerts`,
       `${flood.stations.length} monitoring stations nearby`,
     ].join('\n');
